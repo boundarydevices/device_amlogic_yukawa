@@ -40,11 +40,13 @@
 #include <hardware/audio_effect.h>
 #include <hardware/audio_alsaops.h>
 #include <audio_effects/effect_aec.h>
+#include <audio_route/audio_route.h>
 
 #include <sys/ioctl.h>
 
 #define CARD_OUT 0
 #define PORT_HDMI 0
+#define MIXER_XML_PATH "/vendor/etc/mixer_paths.xml"
 /* Minimum granularity - Arbitrary but small value */
 #define CODEC_BASE_FRAME_COUNT 32
 
@@ -71,6 +73,9 @@ struct alsa_audio_device {
     int devices;
     struct alsa_stream_in *active_input;
     struct alsa_stream_out *active_output;
+    struct audio_route *audio_route;
+    struct mixer *mixer;
+
     bool mic_mute;
 };
 
@@ -674,6 +679,19 @@ static int adev_open(const hw_module_t* module, const char* name,
     adev->devices = AUDIO_DEVICE_NONE;
 
     *device = &adev->hw_device.common;
+
+    adev->mixer = mixer_open(CARD_OUT);
+
+    if (!adev->mixer) {
+        ALOGE("Unable to open the mixer, aborting.");
+        return -EINVAL;
+    }
+
+    adev->audio_route = audio_route_init(CARD_OUT, MIXER_XML_PATH);
+    if (!adev->audio_route) {
+        ALOGE("%s: Failed to init audio route controls, aborting.", __func__);
+        return -EINVAL;
+    }
 
     return 0;
 }
