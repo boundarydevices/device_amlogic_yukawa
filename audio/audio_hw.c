@@ -272,7 +272,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     pthread_mutex_unlock(&adev->lock);
 
 
-    ret = pcm_mmap_write(out->pcm, buffer, out_frames * frame_size);
+    ret = pcm_write(out->pcm, buffer, out_frames * frame_size);
     if (ret == 0) {
         out->written += out_frames;
     }
