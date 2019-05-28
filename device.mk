@@ -52,6 +52,7 @@ PRODUCT_PACKAGES += \
     com.android.media.tv.remoteprovider \
     InputDevices
 
+
 PRODUCT_PACKAGES +=  libGLES_mali
 PRODUCT_PACKAGES +=  libGLES_android
 
@@ -98,11 +99,10 @@ PRODUCT_COPY_FILES += \
 
 PRODUCT_PACKAGES += \
     android.hardware.audio@2.0-service \
-    android.hardware.audio@2.0-impl \
-    android.hardware.audio.effect@2.0-impl \
+    android.hardware.audio@4.0-impl \
+    android.hardware.audio.effect@4.0-impl \
     android.hardware.broadcastradio@1.0-impl \
-    android.hardware.soundtrigger@2.0-impl \
-    android.hardware.bluetooth.audio@2.0-impl
+    android.hardware.soundtrigger@2.1-impl \
 
 # Hardware Composer HAL
 #
@@ -135,7 +135,7 @@ PRODUCT_PACKAGES += \
 
 # USB
 PRODUCT_PACKAGES += \
-	android.hardware.usb@1.0-service
+    android.hardware.usb@1.1-service
 
 PRODUCT_COPY_FILES +=  \
     frameworks/native/data/etc/android.software.app_widgets.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.software.app_widgets.xml \
