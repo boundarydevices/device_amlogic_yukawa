@@ -20,6 +20,8 @@ TARGET_SUPPORTS_64_BIT_APPS := true
 
 TARGET_BOARD_PLATFORM := yukawa
 
+# Vulkan
+BOARD_INSTALL_VULKAN := true
 # BT configs
 BOARD_HAVE_BLUETOOTH := true
 
