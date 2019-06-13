@@ -33,7 +33,7 @@
 #include <linux/cec.h>
 #include <sys/eventfd.h>
 
-#include <cutils/log.h>
+#include <log/log.h>
 #include <cutils/properties.h>
 #include <hardware/hdmi_cec.h>
 
