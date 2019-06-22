@@ -1,5 +1,17 @@
-#LOCAL_KERNEL := device/amlogic/yukawa-kernel/Image.gz
-#PRODUCT_COPY_FILES += $(LOCAL_KERNEL):kernel
+ifeq ($(TARGET_PREBUILT_KERNEL),)
+LOCAL_KERNEL := device/amlogic/yukawa-kernel/Image.lz4
+else
+LOCAL_KERNEL := $(TARGET_PREBUILT_KERNEL)
+endif
+
+ifeq ($(TARGET_PREBUILT_DTB),)
+LOCAL_DTB := device/amlogic/yukawa-kernel/meson-g12a-sei510.dtb
+else
+LOCAL_DTB := $(TARGET_PREBUILT_DTB)
+endif
+
+PRODUCT_COPY_FILES +=  $(LOCAL_KERNEL):kernel \
+                       $(LOCAL_DTB):meson-g12a-sei510.dtb \
 
 # Build and run only ART
 PRODUCT_RUNTIMES := runtime_libart_default
