@@ -1,4 +1,4 @@
-/dev/block/data       /data               ext4      discard,noatime,nosuid,nodev,nodelalloc,nomblk_io_submit,errors=panic    wait,check,quota,formattable,reservedsize=32M
-/dev/block/cache      /cache              ext4      discard,noatime,nosuid,nodev,nodelalloc,nomblk_io_submit,errors=panic    wait,check,formattable
+/dev/block/platform/soc/ffe07000.mmc/by-name/userdata       /data               ext4      discard,noatime,nosuid,nodev,nodelalloc,nomblk_io_submit,errors=panic    wait,check,quota,formattable,reservedsize=32M
+/dev/block/platform/soc/ffe07000.mmc/by-name/cache      /cache              ext4      discard,noatime,nosuid,nodev,nodelalloc,nomblk_io_submit,errors=panic    wait,check,formattable
 */block/mmcblk*    auto    auto    defaults    voldmanaged=sdcard:auto,noemulatedsd
 */block/sd*    auto    auto    defaults    voldmanaged=usb:auto,noemulatedsd
