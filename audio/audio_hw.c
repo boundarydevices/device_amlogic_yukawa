@@ -44,7 +44,7 @@
 #include <sys/ioctl.h>
 
 #define CARD_OUT 0
-#define PORT_CODEC 0
+#define PORT_HDMI 0
 /* Minimum granularity - Arbitrary but small value */
 #define CODEC_BASE_FRAME_COUNT 32
 
@@ -102,7 +102,7 @@ static int start_output_stream(struct alsa_stream_out *out)
     out->config.start_threshold = PLAYBACK_PERIOD_START_THRESHOLD * PERIOD_SIZE;
     out->config.avail_min = PERIOD_SIZE;
 
-    out->pcm = pcm_open(CARD_OUT, PORT_CODEC, PCM_OUT | PCM_MMAP | PCM_NOIRQ | PCM_MONOTONIC, &out->config);
+    out->pcm = pcm_open(CARD_OUT, PORT_HDMI, PCM_OUT, &out->config);
 
     if (!pcm_is_ready(out->pcm)) {
         ALOGE("cannot open pcm_out driver: %s", pcm_get_error(out->pcm));
@@ -435,7 +435,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     struct pcm_params *params;
     int ret = 0;
 
-    params = pcm_params_get(CARD_OUT, PORT_CODEC, PCM_OUT);
+    params = pcm_params_get(CARD_OUT, PORT_HDMI, PCM_OUT);
     if (!params)
         return -ENOSYS;
 
