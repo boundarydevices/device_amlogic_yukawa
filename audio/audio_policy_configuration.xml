@@ -20,7 +20,7 @@
 
     <modules>
         <!-- Primary Audio HAL -->
-        <module name="primary" halVersion="2.0">
+        <module name="primary" halVersion="4.0">
             <attachedDevices>
                 <item>HDMI</item>
             </attachedDevices>
