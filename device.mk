@@ -55,6 +55,14 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES +=  libGLES_mali
 PRODUCT_PACKAGES +=  libGLES_android
 
+# Vulkan
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.hardware.vulkan.version-1_1.xml:vendor/etc/permissions/android.hardware.vulkan.version.xml \
+    frameworks/native/data/etc/android.hardware.vulkan.compute-0.xml:vendor/etc/permissions/android.hardware.vulkan.compute.xml \
+    frameworks/native/data/etc/android.hardware.vulkan.level-1.xml:vendor/etc/permissions/android.hardware.vulkan.level.xml
+
+PRODUCT_PACKAGES +=  vulkan.yukawa.so 
+
 # Bluetooth
 PRODUCT_PACKAGES += android.hardware.bluetooth@1.0-service.btlinux
 
