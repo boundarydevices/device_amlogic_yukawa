@@ -4,3 +4,4 @@ subsystem usbmisc
 /dev/mali0       0666 system graphics
 /dev/ion	 0666 system graphics
 /dev/graphics/fb0       0666 system graphics
+/dev/cec0	0666 system graphics
