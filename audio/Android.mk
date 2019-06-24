@@ -28,11 +28,12 @@ LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_VENDOR_MODULE := true
 
 LOCAL_SRC_FILES := audio_hw.c
-LOCAL_SHARED_LIBRARIES := liblog libcutils libtinyalsa
+LOCAL_SHARED_LIBRARIES := liblog libcutils libtinyalsa libaudioroute
 LOCAL_CFLAGS := -Wno-unused-parameter
 LOCAL_C_INCLUDES += \
         external/tinyalsa/include \
         external/expat/lib \
+        $(call include-path-for, audio-route) \
         system/media/audio_utils/include \
         system/media/audio_effects/include
 
