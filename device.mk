@@ -25,6 +25,10 @@ PRODUCT_IS_ATV := true
 DEVICE_PACKAGE_OVERLAYS := device/amlogic/yukawa/overlay
 DEVICE_PACKAGE_OVERLAYS += device/google/atv/overlay
 
+PRODUCT_PACKAGES += \
+    android.hardware.health@2.0-service.yukawa \
+    android.hardware.health@2.0-service
+
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/fstab.yukawa:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.yukawa \
     $(LOCAL_PATH)/init.yukawa.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.yukawa.rc \
