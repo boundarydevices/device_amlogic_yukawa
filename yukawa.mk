@@ -11,4 +11,4 @@ PRODUCT_NAME := yukawa
 PRODUCT_DEVICE := yukawa
 PRODUCT_BRAND := Android
 PRODUCT_MODEL := ATV on yukawa
-
+PRODUCT_MANUFACTURER := SEI Robotics
