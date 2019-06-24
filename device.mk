@@ -52,6 +52,7 @@ PRODUCT_PACKAGES += \
     com.android.media.tv.remoteprovider \
     InputDevices
 
+PRODUCT_PROPERTY_OVERRIDES += ro.sf.lcd_density=260
 
 PRODUCT_PACKAGES +=  libGLES_mali
 PRODUCT_PACKAGES +=  libGLES_android
