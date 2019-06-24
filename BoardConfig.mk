@@ -66,6 +66,9 @@ BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive printk.devkmsg=on
 BOARD_KERNEL_CMDLINE += skip_initramfs init=/init
 BOARD_KERNEL_CMDLINE += firmware_class.path=/vendor/firmware
 BOARD_KERNEL_CMDLINE += androidboot.hardware=yukawa
+ifeq ($(TARGET_BUILTIN_EDID), true)
+BOARD_KERNEL_CMDLINE += drm_kms_helper.edid_firmware=edid/1920x1080.bin
+endif
 
 USE_E2FSPROGS := true
 
