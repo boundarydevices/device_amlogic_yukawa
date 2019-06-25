@@ -65,6 +65,7 @@ BOARD_KERNEL_CMDLINE += no_console_suspend console=ttyAML0,115200 earlycon
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive printk.devkmsg=on
 BOARD_KERNEL_CMDLINE += skip_initramfs init=/init
 BOARD_KERNEL_CMDLINE += firmware_class.path=/vendor/firmware
+BOARD_KERNEL_CMDLINE += androidboot.hardware=yukawa
 
 USE_E2FSPROGS := true
 
