@@ -139,10 +139,9 @@ PRODUCT_PACKAGES += \
     android.hardware.graphics.allocator@2.0-impl \
     android.hardware.graphics.mapper@2.0-impl
 
+# Software Gatekeeper HAL
 PRODUCT_PACKAGES += \
-    gatekeeper.yukawa \
-    android.hardware.gatekeeper@1.0-impl \
-    android.hardware.gatekeeper@1.0-service
+    android.hardware.gatekeeper@1.0-service.software
 
 PRODUCT_PACKAGES += \
     android.hardware.keymaster@3.0-impl \
