@@ -135,10 +135,10 @@ public:
 
     fast_hash_t ComputeFastHash(const SizedBuffer &password, uint64_t salt) {
         fast_hash_t fast_hash;
-        size_t digest_size = password.length + sizeof(salt);
+        size_t digest_size = password.size() + sizeof(salt);
         std::unique_ptr<uint8_t[]> digest(new uint8_t[digest_size]);
         memcpy(digest.get(), &salt, sizeof(salt));
-        memcpy(digest.get() + sizeof(salt), password.buffer.get(), password.length);
+        memcpy(digest.get() + sizeof(salt), password.Data<uint8_t>(), password.size());
 
         SHA256(digest.get(), digest_size, (uint8_t *) &fast_hash.digest);
 
