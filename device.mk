@@ -58,7 +58,9 @@ PRODUCT_PACKAGES += \
     TvSampleLeanbackLauncher \
     tv_input.default \
     com.android.media.tv.remoteprovider \
-    InputDevices
+    InputDevices \
+    TVLauncher \
+    TVRecommendations
 
 PRODUCT_PROPERTY_OVERRIDES += ro.sf.lcd_density=320
 
