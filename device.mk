@@ -18,6 +18,9 @@ PRODUCT_COPY_FILES +=  $(LOCAL_KERNEL):kernel \
 # Build and run only ART
 PRODUCT_RUNTIMES := runtime_libart_default
 
+# Enable updating of APEXes
+$(call inherit-product, $(SRC_TARGET_DIR)/product/updatable_apex.mk)
+
 # Setup TV Build
 USE_OEM_TV_APP := true
 $(call inherit-product, device/google/atv/products/atv_base.mk)
@@ -26,6 +29,9 @@ PRODUCT_AAPT_PREF_CONFIG := tvdpi
 PRODUCT_IS_ATV := true
 DEVICE_PACKAGE_OVERLAYS := device/amlogic/yukawa/overlay
 DEVICE_PACKAGE_OVERLAYS += device/google/atv/overlay
+
+# All VNDK libraries (HAL interfaces, VNDK, VNDK-SP, LL-NDK)
+PRODUCT_PACKAGES += vndk_package
 
 PRODUCT_PACKAGES += \
     android.hardware.health@2.0-service.yukawa \
