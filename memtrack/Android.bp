@@ -15,7 +15,7 @@
 // HAL module implemenation stored in
 // hw/<POWERS_HARDWARE_MODULE_ID>.<ro.hardware>.so
 cc_library_shared {
-    name: "memtrack.yukawa",
+    name: "memtrack.default",
 
     relative_install_path: "hw",
     proprietary: true,
