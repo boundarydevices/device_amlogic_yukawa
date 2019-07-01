@@ -59,8 +59,8 @@ PRODUCT_PACKAGES += \
     tv_input.default \
     com.android.media.tv.remoteprovider \
     InputDevices \
-    TVLauncher \
-    TVRecommendations
+    TVLauncherNoGms \
+    TVRecommendationsNoGms
 
 PRODUCT_PROPERTY_OVERRIDES += ro.sf.lcd_density=320
 
