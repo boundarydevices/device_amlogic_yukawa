@@ -8,9 +8,11 @@ on init
     # Support legacy paths
     symlink /sdcard /mnt/sdcard
     symlink /sdcard /storage/sdcard0
+    write /proc/sys/vm/page-cluster 0
 
 on fs
     mount_all /vendor/etc/fstab.yukawa
+    swapon_all /vendor/etc/fstab.yukawa
 
 on post-fs
 # fake some battery state
