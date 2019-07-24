@@ -80,4 +80,3 @@ BOARD_SEPOLICY_DIRS += \
 
 DEVICE_MANIFEST_FILE := device/amlogic/yukawa/manifest.xml
 DEVICE_MATRIX_FILE := device/amlogic/yukawa/compatibility_matrix.xml
-
