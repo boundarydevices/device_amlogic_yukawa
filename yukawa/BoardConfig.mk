@@ -74,6 +74,7 @@ BOARD_USES_GENERIC_AUDIO := false
 BOARD_USES_ALSA_AUDIO := true
 TARGET_USES_MKE2FS := true
 TARGET_USES_HWC2 := true
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/amlogic/yukawa/bluetooth
 
 BOARD_SEPOLICY_DIRS += \
         device/amlogic/yukawa/sepolicy
