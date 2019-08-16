@@ -82,7 +82,7 @@ PRODUCT_PACKAGES += android.hardware.bluetooth@1.0-service.btlinux
 PRODUCT_PACKAGES += \
     android.hardware.wifi@1.0-service \
     android.hardware.wifi@1.0
-PRODUCT_PACKAGES += libwpa_client wpa_supplicant hostapd wificond wifilogd
+PRODUCT_PACKAGES += libwpa_client wpa_supplicant hostapd wificond wifilogd wpa_cli
 PRODUCT_PROPERTY_OVERRIDES += wifi.interface=wlan0 \
                               wifi.supplicant_scan_interval=15
 
