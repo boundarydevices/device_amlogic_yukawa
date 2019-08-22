@@ -58,9 +58,13 @@ PRODUCT_PACKAGES += \
     TvSampleLeanbackLauncher \
     tv_input.default \
     com.android.media.tv.remoteprovider \
-    InputDevices \
+    InputDevices
+
+ifeq (,$(filter $(TARGET_PRODUCT),yukawa_gms))
+PRODUCT_PACKAGES += \
     TVLauncherNoGms \
     TVRecommendationsNoGms
+endif
 
 PRODUCT_PROPERTY_OVERRIDES += ro.sf.lcd_density=320
 
