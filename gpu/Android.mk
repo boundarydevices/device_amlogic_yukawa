@@ -41,7 +41,7 @@ LOCAL_STRIP_MODULE := false
 ifeq ($(BOARD_INSTALL_VULKAN),true)
 LOCAL_POST_INSTALL_CMD = $(hide)\
 	cd $(dir $(LOCAL_INSTALLED_MODULE))/../hw;\
-	ln -sf ../egl/$(notdir $(LOCAL_INSTALLED_MODULE)) ./vulkan.$(TARGET_PRODUCT).so
+	ln -sf ../egl/$(notdir $(LOCAL_INSTALLED_MODULE)) ./vulkan.$(TARGET_DEVICE).so
 endif
 
 include $(BUILD_PREBUILT)
