@@ -56,7 +56,7 @@ BOARD_BUILD_SYSTEM_ROOT_IMAGE := true
 
 BOARD_KERNEL_OFFSET      := 0x1080000
 BOARD_KERNEL_TAGS_OFFSET := 0x1000000
-BOARD_MKBOOTIMG_ARGS     := --second $(sort $(wildcard device/amlogic/yukawa-kernel/*.dtb)) --kernel_offset $(BOARD_KERNEL_OFFSET) --second_offset $(BOARD_KERNEL_TAGS_OFFSET)
+BOARD_MKBOOTIMG_ARGS     := --second $(BOARD_KERNEL_DTB) --kernel_offset $(BOARD_KERNEL_OFFSET) --second_offset $(BOARD_KERNEL_TAGS_OFFSET)
 
 BOARD_KERNEL_CMDLINE += root=PARTUUID=99f9b7ac-5207-11e9-8507-c3c037e393f3
 BOARD_KERNEL_CMDLINE += no_console_suspend console=ttyAML0,115200 earlycon
