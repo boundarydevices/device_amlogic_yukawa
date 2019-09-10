@@ -46,25 +46,39 @@
 
 #define CARD_OUT 0
 #define PORT_HDMI 0
+#define CARD_IN 0
+#define PORT_BUILTIN_MIC 3
+
 #define MIXER_XML_PATH "/vendor/etc/mixer_paths.xml"
 /* Minimum granularity - Arbitrary but small value */
 #define CODEC_BASE_FRAME_COUNT 32
 
+#define CHANNEL_STEREO 2
+
+#define PCM_OPEN_RETRIES 100
+#define PCM_OPEN_WAIT_TIME_MS 20
+
+/* Capture codec parameters */
+/* Set up a capture period of 20 ms:
+ * CAPTURE_PERIOD = PERIOD_SIZE / SAMPLE_RATE, so (20e-3) = PERIOD_SIZE / (16e3)
+ * => PERIOD_SIZE = 320 frames, where each "frame" consists of 1 sample of every channel (here, 2ch) */
+#define CAPTURE_PERIOD_MULTIPLIER 10
+#define CAPTURE_PERIOD_SIZE (CODEC_BASE_FRAME_COUNT * CAPTURE_PERIOD_MULTIPLIER)
+#define CAPTURE_PERIOD_COUNT 4
+#define CAPTURE_PERIOD_START_THRESHOLD 0
+#define CAPTURE_CODEC_SAMPLING_RATE 16000
+
+/* Playback codec parameters */
 /* number of base blocks in a short period (low latency) */
-#define PERIOD_MULTIPLIER 32  /* 21 ms */
+#define PLAYBACK_PERIOD_MULTIPLIER 32  /* 21 ms */
 /* number of frames per short period (low latency) */
-#define PERIOD_SIZE (CODEC_BASE_FRAME_COUNT * PERIOD_MULTIPLIER)
+#define PLAYBACK_PERIOD_SIZE (CODEC_BASE_FRAME_COUNT * PLAYBACK_PERIOD_MULTIPLIER)
 /* number of pseudo periods for low latency playback */
 #define PLAYBACK_PERIOD_COUNT 4
 #define PLAYBACK_PERIOD_START_THRESHOLD 2
-#define CODEC_SAMPLING_RATE 48000
-#define CHANNEL_STEREO 2
+#define PLAYBACK_CODEC_SAMPLING_RATE 48000
 #define MIN_WRITE_SLEEP_US      5000
 
-
-struct stub_stream_in {
-    struct audio_stream_in stream;
-};
 
 struct alsa_audio_device {
     struct audio_hw_device hw_device;
@@ -77,6 +91,19 @@ struct alsa_audio_device {
     struct mixer *mixer;
 
     bool mic_mute;
+};
+
+struct alsa_stream_in {
+    struct audio_stream_in stream;
+
+    pthread_mutex_t lock;   /* see note below on mutex acquisition order */
+    struct pcm_config config;
+    struct pcm *pcm;
+    bool unavailable;
+    bool standby;
+    struct alsa_audio_device *dev;
+    int read_threshold;
+    unsigned int read;
 };
 
 struct alsa_stream_out {
@@ -97,26 +124,33 @@ static int start_output_stream(struct alsa_stream_out *out)
 {
     struct alsa_audio_device *adev = out->dev;
 
-    if (out->unavailable)
-        return -ENODEV;
-
     /* default to low power: will be corrected in out_write if necessary before first write to
      * tinyalsa.
      */
-    out->write_threshold = PLAYBACK_PERIOD_COUNT * PERIOD_SIZE;
-    out->config.start_threshold = PLAYBACK_PERIOD_START_THRESHOLD * PERIOD_SIZE;
-    out->config.avail_min = PERIOD_SIZE;
+    out->write_threshold = PLAYBACK_PERIOD_COUNT * PLAYBACK_PERIOD_SIZE;
+    out->config.start_threshold = PLAYBACK_PERIOD_START_THRESHOLD * PLAYBACK_PERIOD_SIZE;
+    out->config.avail_min = PLAYBACK_PERIOD_SIZE;
+    out->unavailable = true;
+    unsigned int pcm_retry_count = PCM_OPEN_RETRIES;
 
-    out->pcm = pcm_open(CARD_OUT, PORT_HDMI, PCM_OUT, &out->config);
-
-    if (!pcm_is_ready(out->pcm)) {
-        ALOGE("cannot open pcm_out driver: %s", pcm_get_error(out->pcm));
-        pcm_close(out->pcm);
-        adev->active_output = NULL;
-        out->unavailable = true;
-        return -ENODEV;
+    while (1) {
+        out->pcm = pcm_open(CARD_OUT, PORT_HDMI, PCM_OUT, &out->config);
+        if ((out->pcm != NULL) && pcm_is_ready(out->pcm)) {
+            break;
+        } else {
+            ALOGE("cannot open pcm_out driver: %s", pcm_get_error(out->pcm));
+            if (out->pcm != NULL) {
+                pcm_close(out->pcm);
+                out->pcm = NULL;
+            }
+            if (--pcm_retry_count == 0) {
+                ALOGE("Failed to open pcm_out after %d tries", PCM_OPEN_RETRIES);
+                return -ENODEV;
+            }
+            usleep(PCM_OPEN_WAIT_TIME_MS * 1000);
+        }
     }
-
+    out->unavailable = false;
     adev->active_output = out;
     return 0;
 }
@@ -139,7 +173,7 @@ static size_t out_get_buffer_size(const struct audio_stream *stream)
 
     /* return the closest majoring multiple of 16 frames, as
      * audioflinger expects audio buffers to be a multiple of 16 frames */
-    size_t size = PERIOD_SIZE;
+    size_t size = PLAYBACK_PERIOD_SIZE;
     size = ((size + 15) / 16) * 16;
     return size * audio_stream_out_frame_size((struct audio_stream_out *)stream);
 }
@@ -235,7 +269,7 @@ static uint32_t out_get_latency(const struct audio_stream_out *stream)
 {
     ALOGV("out_get_latency");
     struct alsa_stream_out *out = (struct alsa_stream_out *)stream;
-    return (PERIOD_SIZE * PLAYBACK_PERIOD_COUNT * 1000) / out->config.rate;
+    return (PLAYBACK_PERIOD_SIZE * PLAYBACK_PERIOD_COUNT * 1000) / out->config.rate;
 }
 
 static int out_set_volume(struct audio_stream_out *stream, float left,
@@ -339,10 +373,40 @@ static int out_get_next_write_timestamp(const struct audio_stream_out *stream,
 }
 
 /** audio_stream_in implementation **/
+
+/* must be called with hw device and input stream mutexes locked */
+static int start_input_stream(struct alsa_stream_in *in)
+{
+    struct alsa_audio_device *adev = in->dev;
+    in->unavailable = true;
+    unsigned int pcm_retry_count = PCM_OPEN_RETRIES;
+
+    while (1) {
+        in->pcm = pcm_open(CARD_IN, PORT_BUILTIN_MIC, PCM_IN, &in->config);
+        if ((in->pcm != NULL) && pcm_is_ready(in->pcm)) {
+            break;
+        } else {
+            ALOGE("cannot open pcm_in driver: %s", pcm_get_error(in->pcm));
+            if (in->pcm != NULL) {
+                pcm_close(in->pcm);
+                in->pcm = NULL;
+            }
+            if (--pcm_retry_count == 0) {
+                ALOGE("Failed to open pcm_in after %d tries", PCM_OPEN_RETRIES);
+                return -ENODEV;
+            }
+            usleep(PCM_OPEN_WAIT_TIME_MS * 1000);
+        }
+    }
+    in->unavailable = false;
+    adev->active_input = in;
+    return 0;
+}
+
 static uint32_t in_get_sample_rate(const struct audio_stream *stream)
 {
-    ALOGV("in_get_sample_rate");
-    return 8000;
+    struct alsa_stream_in *in = (struct alsa_stream_in *)stream;
+    return in->config.rate;
 }
 
 static int in_set_sample_rate(struct audio_stream *stream, uint32_t rate)
@@ -351,21 +415,31 @@ static int in_set_sample_rate(struct audio_stream *stream, uint32_t rate)
     return -ENOSYS;
 }
 
-static size_t in_get_buffer_size(const struct audio_stream *stream)
+static size_t get_input_buffer_size(audio_format_t format,
+                                    audio_channel_mask_t channel_mask)
 {
-    ALOGV("in_get_buffer_size: %d", 320);
-    return 320;
+    /* return the closest majoring multiple of 16 frames, as
+     * audioflinger expects audio buffers to be a multiple of 16 frames */
+    size_t frames = CAPTURE_PERIOD_SIZE;
+    frames = ((frames + 15) / 16) * 16;
+    size_t bytes_per_frame = audio_channel_count_from_in_mask(channel_mask) *
+                            audio_bytes_per_sample(format);
+    size_t buffer_size = frames * bytes_per_frame;
+    return buffer_size;
 }
 
 static audio_channel_mask_t in_get_channels(const struct audio_stream *stream)
 {
-    ALOGV("in_get_channels: %d", AUDIO_CHANNEL_IN_MONO);
-    return AUDIO_CHANNEL_IN_MONO;
+    struct alsa_stream_in *in = (struct alsa_stream_in *)stream;
+    ALOGV("in_get_channels: %d", in->config.channels);
+    return audio_channel_in_mask_from_count(in->config.channels);
 }
 
 static audio_format_t in_get_format(const struct audio_stream *stream)
 {
-    return AUDIO_FORMAT_PCM_16_BIT;
+    struct alsa_stream_in *in = (struct alsa_stream_in *)stream;
+    ALOGV("in_get_format: %d", in->config.format);
+    return audio_format_from_pcm_format(in->config.format);
 }
 
 static int in_set_format(struct audio_stream *stream, audio_format_t format)
@@ -373,9 +447,40 @@ static int in_set_format(struct audio_stream *stream, audio_format_t format)
     return -ENOSYS;
 }
 
+static size_t in_get_buffer_size(const struct audio_stream *stream)
+{
+    struct alsa_stream_in *in = (struct alsa_stream_in *)stream;
+
+    size_t buffer_size = get_input_buffer_size(stream->get_format(stream),
+                            stream->get_channels(stream));
+    ALOGV("in_get_buffer_size: %zu", buffer_size);
+    return buffer_size;
+}
+
+static int do_input_standby(struct alsa_stream_in *in)
+{
+    struct alsa_audio_device *adev = in->dev;
+
+    if (!in->standby) {
+        pcm_close(in->pcm);
+        in->pcm = NULL;
+        adev->active_input = NULL;
+        in->standby = true;
+    }
+    return 0;
+}
+
 static int in_standby(struct audio_stream *stream)
 {
-    return 0;
+    struct alsa_stream_in *in = (struct alsa_stream_in *)stream;
+    int status;
+
+    pthread_mutex_lock(&in->lock);
+    pthread_mutex_lock(&in->dev->lock);
+    status = do_input_standby(in);
+    pthread_mutex_unlock(&in->dev->lock);
+    pthread_mutex_unlock(&in->lock);
+    return status;
 }
 
 static int in_dump(const struct audio_stream *stream, int fd)
@@ -403,10 +508,52 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
         size_t bytes)
 {
     ALOGV("in_read: bytes %zu", bytes);
-    /* XXX: fake timing for audio input */
-    usleep((int64_t)bytes * 1000000 / audio_stream_in_frame_size(stream) /
-            in_get_sample_rate(&stream->common));
-    memset(buffer, 0, bytes);
+
+    int ret;
+    struct alsa_stream_in *in = (struct alsa_stream_in *)stream;
+    struct alsa_audio_device *adev = in->dev;
+    size_t frame_size = audio_stream_in_frame_size(stream);
+    size_t in_frames = bytes / frame_size;
+
+    /* acquiring hw device mutex systematically is useful if a low priority thread is waiting
+     * on the output stream mutex - e.g. executing select_mode() while holding the hw device
+     * mutex
+     */
+    pthread_mutex_lock(&in->lock);
+    pthread_mutex_lock(&adev->lock);
+    if (in->standby) {
+        ret = start_input_stream(in);
+        if (ret != 0) {
+            pthread_mutex_unlock(&adev->lock);
+            ALOGE("start_input_stream failed with code %d", ret);
+            goto exit;
+        }
+        in->standby = false;
+    }
+
+    pthread_mutex_unlock(&adev->lock);
+
+
+    ret = pcm_read(in->pcm, buffer, in_frames * frame_size);
+    if (ret == 0) {
+        in->read += in_frames;
+    }
+    else {
+        ALOGE("pcm_read failed with code %d", ret);
+    }
+
+exit:
+    pthread_mutex_unlock(&in->lock);
+
+    if (adev->mic_mute) {
+        memset(buffer, 0, bytes);
+    }
+
+    if (ret != 0) {
+        usleep((int64_t)bytes * 1000000 / audio_stream_in_frame_size(stream) /
+                in_get_sample_rate(&stream->common));
+    }
+
     return bytes;
 }
 
@@ -468,9 +615,9 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     out->stream.get_presentation_position = out_get_presentation_position;
 
     out->config.channels = CHANNEL_STEREO;
-    out->config.rate = CODEC_SAMPLING_RATE;
+    out->config.rate = PLAYBACK_CODEC_SAMPLING_RATE;
     out->config.format = PCM_FORMAT_S16_LE;
-    out->config.period_size = PERIOD_SIZE;
+    out->config.period_size = PLAYBACK_PERIOD_SIZE;
     out->config.period_count = PLAYBACK_PERIOD_COUNT;
 
     if (out->config.rate != config->sample_rate ||
@@ -566,23 +713,28 @@ static int adev_set_mode(struct audio_hw_device *dev, audio_mode_t mode)
 static int adev_set_mic_mute(struct audio_hw_device *dev, bool state)
 {
     ALOGV("adev_set_mic_mute: %d",state);
-    return -ENOSYS;
+    struct alsa_audio_device *adev = (struct alsa_audio_device *)dev;
+    adev->mic_mute = state;
+    return 0;
 }
 
 static int adev_get_mic_mute(const struct audio_hw_device *dev, bool *state)
 {
     ALOGV("adev_get_mic_mute");
-    return -ENOSYS;
+    struct alsa_audio_device *adev = (struct alsa_audio_device *)dev;
+    *state = adev->mic_mute;
+    return 0;
 }
 
 static size_t adev_get_input_buffer_size(const struct audio_hw_device *dev,
         const struct audio_config *config)
 {
-    ALOGV("adev_get_input_buffer_size: %d", 320);
-    return 320;
+    size_t buffer_size = get_input_buffer_size(config->format, config->channel_mask);
+    ALOGV("adev_get_input_buffer_size: %zu", buffer_size);
+    return buffer_size;
 }
 
-static int adev_open_input_stream(struct audio_hw_device __unused *dev,
+static int adev_open_input_stream(struct audio_hw_device *dev,
         audio_io_handle_t handle,
         audio_devices_t devices,
         struct audio_config *config,
@@ -591,11 +743,19 @@ static int adev_open_input_stream(struct audio_hw_device __unused *dev,
         const char *address __unused,
         audio_source_t source __unused)
 {
-    struct stub_stream_in *in;
 
     ALOGV("adev_open_input_stream...");
 
-    in = (struct stub_stream_in *)calloc(1, sizeof(struct stub_stream_in));
+    struct alsa_audio_device *ladev = (struct alsa_audio_device *)dev;
+    struct alsa_stream_in *in;
+    struct pcm_params *params;
+    int ret = 0;
+
+    params = pcm_params_get(CARD_IN, PORT_BUILTIN_MIC, PCM_IN);
+    if (!params)
+        return -ENOSYS;
+
+    in = (struct alsa_stream_in *)calloc(1, sizeof(struct alsa_stream_in));
     if (!in)
         return -ENOMEM;
 
@@ -615,14 +775,43 @@ static int adev_open_input_stream(struct audio_hw_device __unused *dev,
     in->stream.read = in_read;
     in->stream.get_input_frames_lost = in_get_input_frames_lost;
 
-    *stream_in = &in->stream;
-    return 0;
+    in->config.channels = CHANNEL_STEREO;
+    in->config.rate = CAPTURE_CODEC_SAMPLING_RATE;
+    in->config.format = PCM_FORMAT_S32_LE;
+    in->config.period_size = CAPTURE_PERIOD_SIZE;
+    in->config.period_count = CAPTURE_PERIOD_COUNT;
+
+    if (in->config.rate != config->sample_rate ||
+           audio_channel_count_from_in_mask(config->channel_mask) != CHANNEL_STEREO ||
+               in->config.format !=  pcm_format_from_audio_format(config->format) ) {
+        ret = -EINVAL;
+    }
+
+    ALOGI("adev_open_input_stream selects channels=%d rate=%d format=%d",
+                in->config.channels, in->config.rate, in->config.format);
+
+    in->dev = ladev;
+    in->standby = true;
+    in->unavailable = false;
+
+    config->format = in_get_format(&in->stream.common);
+    config->channel_mask = in_get_channels(&in->stream.common);
+    config->sample_rate = in_get_sample_rate(&in->stream.common);
+
+    if (ret) {
+        free(in);
+    } else {
+        *stream_in = &in->stream;
+    }
+
+    return ret;
 }
 
 static void adev_close_input_stream(struct audio_hw_device *dev,
         struct audio_stream_in *in)
 {
     ALOGV("adev_close_input_stream...");
+    free(in);
     return;
 }
 
