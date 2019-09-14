@@ -6,14 +6,7 @@ else
 LOCAL_KERNEL := $(TARGET_PREBUILT_KERNEL)
 endif
 
-ifeq ($(TARGET_PREBUILT_DTB),)
-LOCAL_DTB := device/amlogic/yukawa-kernel/meson-g12a-sei510.dtb
-else
-LOCAL_DTB := $(TARGET_PREBUILT_DTB)
-endif
-
-PRODUCT_COPY_FILES +=  $(LOCAL_KERNEL):kernel \
-                       $(LOCAL_DTB):meson-g12a-sei510.dtb \
+PRODUCT_COPY_FILES +=  $(LOCAL_KERNEL):kernel
 
 # Build and run only ART
 PRODUCT_RUNTIMES := runtime_libart_default
