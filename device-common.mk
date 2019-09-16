@@ -53,7 +53,7 @@ PRODUCT_PACKAGES += \
     com.android.media.tv.remoteprovider \
     InputDevices
 
-ifeq (,$(filter $(TARGET_PRODUCT),yukawa_gms))
+ifeq (,$(filter $(TARGET_PRODUCT),yukawa_gms yukawa_sei510_gms))
 PRODUCT_PACKAGES += \
     TVLauncherNoGms \
     TVRecommendationsNoGms
