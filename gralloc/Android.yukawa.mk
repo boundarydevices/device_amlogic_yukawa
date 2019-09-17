@@ -31,7 +31,7 @@ MALI_GPU_USE_YUV_AFBC_WIDEBLK=0
 #
 
 # Gralloc1 support
-GRALLOC_USE_GRALLOC1_API=1
+GRALLOC_USE_GRALLOC1_API=0
 # Use ION DMA heap for all allocations. Default is system heap.
 GRALLOC_USE_ION_DMA_HEAP=1
 # Use ION Compound heap for all allocations. Default is system heap.
