@@ -187,3 +187,8 @@ PRODUCT_COPY_FILES += \
 BOARD_AVB_ENABLE := false
 BOARD_AVB_ALGORITHM := SHA256_RSA2048
 BOARD_AVB_ROLLBACK_INDEX := 0
+
+# Enable BT Pairing with button BTN_0 (key 256)
+PRODUCT_PACKAGES += YukawaService YukawaAndroidOverlay
+PRODUCT_COPY_FILES += \
+    device/amlogic/yukawa/Vendor_0001_Product_0001.kl:$(TARGET_COPY_OUT_VENDOR)/usr/keylayout/Vendor_0001_Product_0001.kl
