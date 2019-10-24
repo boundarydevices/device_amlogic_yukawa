@@ -37,5 +37,12 @@ LOCAL_C_INCLUDES += \
         system/media/audio_utils/include \
         system/media/audio_effects/include
 
-include $(BUILD_SHARED_LIBRARY)
+ifneq ($(findstring google_aec, $(call all-makefiles-under,$(TOPDIR)vendor/amlogic/yukawa)),)
+    LOCAL_SRC_FILES += \
+        audio_aec.c \
+        fifo_wrapper.cpp
+    LOCAL_SHARED_LIBRARIES += google_aec libaudioutils
+    LOCAL_CFLAGS += -DAEC_HAL
+endif
 
+include $(BUILD_SHARED_LIBRARY)
