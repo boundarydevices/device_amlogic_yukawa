@@ -95,4 +95,15 @@ struct alsa_stream_out {
     unsigned int written;
 };
 
+/* 'bytes' are the number of bytes written to audio FIFO, for which 'timestamp' is valid.
+ * 'available' is the number of frames available to read (for input) or yet to be played
+ * (for output) frames in the PCM buffer.
+ * timestamp and available are updated by pcm_get_htimestamp(), so they use the same
+ * datatypes as the corresponding arguments to that function. */
+struct aec_info {
+    struct timespec timestamp;
+    unsigned int available;
+    size_t bytes;
+};
+
 #endif /* #ifndef _YUKAWA_AUDIO_HW_H_ */
