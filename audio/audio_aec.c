@@ -82,18 +82,6 @@ uint64_t timespec_to_usec(struct timespec ts) {
     return (ts.tv_sec * 1e6L + ts.tv_nsec/1000);
 }
 
-void timestamp_adjust(struct timespec *ts, size_t frames, uint32_t sampling_rate) {
-    /* This function assumes the adjustment (in nsec) is less than the max value of long,
-     * which for 32-bit long this is 2^31 * 1e-9 seconds, slightly over 2 seconds.
-     * For 64-bit long it is  9e+9 seconds. */
-    long adj_nsec = (frames / (float) sampling_rate) * 1E9L;
-    ts->tv_nsec -= adj_nsec;
-    if (ts->tv_nsec < 0) {
-        ts->tv_sec--;
-        ts->tv_nsec += 1E9L;
-    }
-}
-
 void get_reference_audio_in_place(struct aec_t *aec, size_t frames) {
     if (aec->num_reference_channels == aec->spk_num_channels) {
         /* Reference count equals speaker channels, nothing to do here. */
@@ -121,13 +109,10 @@ void print_queue_status_to_log(struct aec_t *aec, bool write_side) {
     ssize_t q1 = fifo_available_to_read(aec->spk_fifo);
     ssize_t q2 = fifo_available_to_read(aec->ts_fifo);
 
-    if (write_side) {
-        ALOGV("Queue available (POST-WRITE): Spk %zd (count %zd) TS %zd (count %zd)",
-        q1, q1/aec->spk_frame_size_bytes/PLAYBACK_PERIOD_SIZE, q2, q2/sizeof(struct ts_fifo_payload));
-    } else {
-        ALOGV("Queue available (PRE-READ): Spk %zd (count %zd) TS %zd (count %zd)",
-        q1, q1/aec->spk_frame_size_bytes/PLAYBACK_PERIOD_SIZE, q2, q2/sizeof(struct ts_fifo_payload));
-    }
+    ALOGV("Queue available %s: Spk %zd (count %zd) TS %zd (count %zd)",
+        (write_side) ? "(POST-WRITE)" : "(PRE-READ)",
+        q1, q1/aec->spk_frame_size_bytes/PLAYBACK_PERIOD_SIZE,
+        q2, q2/sizeof(struct aec_info));
 }
 
 void flush_aec_fifos(struct aec_t *aec) {
@@ -230,7 +215,7 @@ int init_aec_reference_config(struct aec_t *aec, struct alsa_stream_out *out) {
         goto exit;
     }
     aec->ts_fifo = fifo_init(
-            out->config.period_count * sizeof(struct ts_fifo_payload),
+            out->config.period_count * sizeof(struct aec_info),
             false /* reader_throttles_writer */);
     if (aec->ts_fifo == NULL) {
         ALOGE("AEC: Speaker timestamp FIFO Init failed!");
@@ -361,7 +346,7 @@ void destroy_aec_reference_config(struct aec_t *aec) {
     aec_set_spk_running(aec, false);
     fifo_release(aec->spk_fifo);
     fifo_release(aec->ts_fifo);
-    memset(&aec->last_spk_ts, 0, sizeof(struct ts_fifo_payload));
+    memset(&aec->last_spk_info, 0, sizeof(struct aec_info));
     pthread_mutex_unlock(&aec->lock);
     ALOGV("%s exit", __func__);
 }
@@ -378,15 +363,15 @@ void destroy_aec_mic_config(struct aec_t *aec) {
     free(aec->spk_buf);
     free(aec->spk_buf_playback_format);
     free(aec->spk_buf_resampler_out);
-    memset(&aec->last_mic_ts, 0, sizeof(struct ts_fifo_payload));
+    memset(&aec->last_mic_info, 0, sizeof(struct aec_info));
     pthread_mutex_unlock(&aec->lock);
     ALOGV("%s exit", __func__);
 }
 
-int write_to_reference_fifo(struct aec_t *aec, struct alsa_stream_out *out,
-                                void *buffer, size_t bytes) {
+int write_to_reference_fifo (struct aec_t *aec, void *buffer, struct aec_info *info) {
     ALOGV("%s enter", __func__);
     int ret = 0;
+    size_t bytes = info->bytes;
 
     /* Write audio samples to FIFO */
     ssize_t written_bytes = fifo_write(aec->spk_fifo, buffer, bytes);
@@ -395,17 +380,10 @@ int write_to_reference_fifo(struct aec_t *aec, struct alsa_stream_out *out,
         ret = -ENOMEM;
     }
 
-    /* Get current timestamp and write to FIFO */
-    struct ts_fifo_payload spk_ts;
-    pcm_get_htimestamp(out->pcm, &spk_ts.available, &spk_ts.timestamp);
-    /* We need the timestamp of the first frame, adjust htimestamp */
-    timestamp_adjust(
-        &spk_ts.timestamp,
-        pcm_get_buffer_size(out->pcm) - spk_ts.available,
-        aec->spk_sampling_rate);
-    spk_ts.bytes = written_bytes;
-    ALOGV("Speaker timestamp: %ld s, %ld nsec", spk_ts.timestamp.tv_sec, spk_ts.timestamp.tv_nsec);
-    ssize_t ts_bytes = fifo_write(aec->ts_fifo, &spk_ts, sizeof(struct ts_fifo_payload));
+    /* Write timestamp to FIFO */
+    info->bytes = written_bytes;
+    ALOGV("Speaker timestamp: %ld s, %ld nsec", info->timestamp.tv_sec, info->timestamp.tv_nsec);
+    ssize_t ts_bytes = fifo_write(aec->ts_fifo, info, sizeof(struct aec_info));
     ALOGV("Wrote TS bytes: %zu", ts_bytes);
     print_queue_status_to_log(aec, true);
     ALOGV("%s exit", __func__);
@@ -421,7 +399,7 @@ void get_spk_timestamp(struct aec_t *aec, ssize_t read_bytes, uint64_t *spk_time
          * so even if we straddle packets we only care about the first one)
          * So we just use the previous timestamp, with an appropriate offset
          * based on the number of bytes remaining to be read from that write packet. */
-        spk_time_offset = (aec->last_spk_ts.bytes + aec->read_write_diff_bytes) * usec_per_byte;
+        spk_time_offset = (aec->last_spk_info.bytes + aec->read_write_diff_bytes) * usec_per_byte;
         ALOGV("Reusing previous timestamp, calculated offset (usec) %"PRIu64, spk_time_offset);
     } else {
         /* If read_write_diff_bytes > 0, there are no new writes, so there won't be timestamps in
@@ -431,16 +409,16 @@ void get_spk_timestamp(struct aec_t *aec, ssize_t read_bytes, uint64_t *spk_time
             return;
         }
         /* We just read valid data, so if we're here, we should have a valid timestamp to use. */
-        ssize_t ts_bytes = fifo_read(aec->ts_fifo, &aec->last_spk_ts,
-                                        sizeof(struct ts_fifo_payload));
-        ALOGV("Read TS bytes: %zd, expected %zu", ts_bytes, sizeof(struct ts_fifo_payload));
-        aec->read_write_diff_bytes -= aec->last_spk_ts.bytes;
+        ssize_t ts_bytes = fifo_read(aec->ts_fifo, &aec->last_spk_info,
+                                        sizeof(struct aec_info));
+        ALOGV("Read TS bytes: %zd, expected %zu", ts_bytes, sizeof(struct aec_info));
+        aec->read_write_diff_bytes -= aec->last_spk_info.bytes;
     }
 
-    *spk_time = timespec_to_usec(aec->last_spk_ts.timestamp) + spk_time_offset;
+    *spk_time = timespec_to_usec(aec->last_spk_info.timestamp) + spk_time_offset;
 
     aec->read_write_diff_bytes += read_bytes;
-    struct ts_fifo_payload spk_ts = aec->last_spk_ts;
+    struct aec_info spk_info = aec->last_spk_info;
     while (aec->read_write_diff_bytes > 0) {
         /* If read_write_diff_bytes > 0, it means that there are more write packet timestamps
          * in FIFO (since there we read more valid data the size of the current timestamp's
@@ -450,16 +428,16 @@ void get_spk_timestamp(struct aec_t *aec, ssize_t read_bytes, uint64_t *spk_time
             ALOGV("At the end of timestamp FIFO, breaking...");
             break;
         }
-        fifo_read(aec->ts_fifo, &spk_ts, sizeof(struct ts_fifo_payload));
+        fifo_read(aec->ts_fifo, &spk_info, sizeof(struct aec_info));
         ALOGV("Fast-forwarded timestamp by %zd bytes, remaining bytes: %zd,"
                 " new timestamp (usec) %"PRIu64,
-                spk_ts.bytes, aec->read_write_diff_bytes, timespec_to_usec(spk_ts.timestamp));
-        aec->read_write_diff_bytes -= spk_ts.bytes;
+                spk_info.bytes, aec->read_write_diff_bytes, timespec_to_usec(spk_info.timestamp));
+        aec->read_write_diff_bytes -= spk_info.bytes;
     }
-    aec->last_spk_ts = spk_ts;
+    aec->last_spk_info = spk_info;
 }
 
-int process_aec(struct aec_t *aec, struct alsa_stream_in *in, void* buffer, size_t bytes) {
+int process_aec(struct aec_t *aec, void* buffer, struct aec_info *info) {
     ALOGV("%s enter", __func__);
     int ret = 0;
 
@@ -468,19 +446,15 @@ int process_aec(struct aec_t *aec, struct alsa_stream_in *in, void* buffer, size
         return -EINVAL;
     }
 
+    size_t bytes = info->bytes;
+
     size_t frame_size = aec->mic_frame_size_bytes;
     size_t in_frames = bytes / frame_size;
 
     /* Copy raw mic samples to AEC input buffer */
     memcpy(aec->mic_buf, buffer, bytes);
 
-    pcm_get_htimestamp(in->pcm, &aec->last_mic_ts.available, &aec->last_mic_ts.timestamp);
-    /* We need the timestamp of the first frame, adjust htimestamp */
-    timestamp_adjust(
-        &aec->last_mic_ts.timestamp,
-        pcm_get_buffer_size(in->pcm) - aec->last_mic_ts.available,
-        aec->mic_sampling_rate);
-    uint64_t mic_time = timespec_to_usec(aec->last_mic_ts.timestamp);
+    uint64_t mic_time = timespec_to_usec(info->timestamp);
     uint64_t spk_time = 0;
 
     /*
