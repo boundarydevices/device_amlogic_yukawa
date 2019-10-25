@@ -47,6 +47,37 @@
 #include "audio_hw.h"
 #include "audio_aec.h"
 
+
+static void timestamp_adjust(struct timespec *ts, size_t frames, uint32_t sampling_rate) {
+    /* This function assumes the adjustment (in nsec) is less than the max value of long,
+     * which for 32-bit long this is 2^31 * 1e-9 seconds, slightly over 2 seconds.
+     * For 64-bit long it is  9e+9 seconds. */
+    long adj_nsec = (frames / (float) sampling_rate) * 1E9L;
+    ts->tv_nsec += adj_nsec;
+    while (ts->tv_nsec > 1E9L) {
+        ts->tv_sec++;
+        ts->tv_nsec -= 1E9L;
+    }
+}
+
+/* Helper function to get PCM hardware timestamp.
+ * Only the field 'timestamp' of argument 'ts' is updated. */
+static int get_pcm_timestamp(struct pcm *pcm, uint32_t sample_rate,
+                                struct aec_info *info) {
+    int ret = 0;
+    if (pcm_get_htimestamp(pcm, &info->available, &info->timestamp) < 0) {
+        ALOGE("Error getting PCM timestamp!");
+        info->timestamp.tv_sec = 0;
+        info->timestamp.tv_nsec = 0;
+        return -EINVAL;
+    }
+    timestamp_adjust(
+        &info->timestamp,
+        pcm_get_buffer_size(pcm) - info->available,
+        sample_rate);
+    return ret;
+}
+
 /* must be called with hw device and output stream mutexes locked */
 static int start_output_stream(struct alsa_stream_out *out)
 {
@@ -240,8 +271,10 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     if (ret == 0) {
         out->written += out_frames;
 
-        int aec_ret = write_to_reference_fifo(adev->aec, out, (void *)buffer,
-                                                out_frames * frame_size);
+        struct aec_info info;
+        get_pcm_timestamp(out->pcm, out->config.rate, &info);
+        info.bytes = out_frames * frame_size;
+        int aec_ret = write_to_reference_fifo(adev->aec, (void *)buffer, &info);
         if (aec_ret) {
             ALOGE("AEC: Write to speaker loopback FIFO failed!");
         }
@@ -489,7 +522,10 @@ exit:
         /* Process AEC if available */
         /* TODO move to a separate thread */
         if (!adev->mic_mute) {
-            int aec_ret = process_aec(adev->aec, in, buffer, bytes);
+            struct aec_info info;
+            get_pcm_timestamp(in->pcm, in->config.rate, &info);
+            info.bytes = bytes;
+            int aec_ret = process_aec(adev->aec, buffer, &info);
             if (aec_ret) {
                 ALOGE("process_aec returned error code %d", aec_ret);
             }

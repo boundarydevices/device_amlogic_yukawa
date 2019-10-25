@@ -33,17 +33,6 @@
 #include "audio_hw.h"
 #include "fifo_wrapper.h"
 
-/* 'bytes' are the number of bytes written to audio FIFO, for which 'timestamp' is valid.
- * 'available' is the number of frames available to read (for input) or yet to be played
- * (for output) frames in the PCM buffer.
- * timestamp and available are updated by pcm_get_htimestamp(), so they use the same
- * datatypes as the corresponding arguments to that function. */
-struct ts_fifo_payload {
-    struct timespec timestamp;
-    unsigned int available;
-    size_t bytes;
-};
-
 struct aec_t {
     pthread_mutex_t lock;
     size_t num_reference_channels;
@@ -52,13 +41,13 @@ struct aec_t {
     size_t mic_buf_size_bytes;
     size_t mic_frame_size_bytes;
     uint32_t mic_sampling_rate;
-    struct ts_fifo_payload last_mic_ts;
+    struct aec_info last_mic_info;
     int32_t *spk_buf;
     size_t spk_num_channels;
     size_t spk_buf_size_bytes;
     size_t spk_frame_size_bytes;
     uint32_t spk_sampling_rate;
-    struct ts_fifo_payload last_spk_ts;
+    struct aec_info last_spk_info;
     int16_t *spk_buf_playback_format;
     int16_t *spk_buf_resampler_out;
     void *spk_fifo;
@@ -74,14 +63,13 @@ struct aec_t {
 /* Write audio samples to AEC reference FIFO for use in AEC.
  * Both audio samples and timestamps are added in FIFO fashion.
  * Must be called after every write to PCM. */
-int write_to_reference_fifo (struct aec_t *aec, struct alsa_stream_out *out,
-                                void *buffer, size_t bytes);
+int write_to_reference_fifo (struct aec_t *aec, void *buffer, struct aec_info *info);
 
 /* Processing function call for AEC.
  * AEC output is updated at location pointed to by 'buffer'.
  * This function does not run AEC when there is no playback -
  * as communicated to this AEC interface using aec_set_spk_running().*/
-int process_aec (struct aec_t *aec, struct alsa_stream_in *in, void* buffer, size_t bytes);
+int process_aec (struct aec_t *aec, void* buffer, struct aec_info *info);
 
 /* Initialize AEC object.
  * This must be called when the audio device is opened.
