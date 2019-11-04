@@ -93,7 +93,7 @@ static int start_output_stream(struct alsa_stream_out *out)
     unsigned int pcm_retry_count = PCM_OPEN_RETRIES;
 
     while (1) {
-        out->pcm = pcm_open(CARD_OUT, PORT_HDMI, PCM_OUT, &out->config);
+        out->pcm = pcm_open(CARD_OUT, PORT_HDMI, PCM_OUT | PCM_MONOTONIC, &out->config);
         if ((out->pcm != NULL) && pcm_is_ready(out->pcm)) {
             break;
         } else {
@@ -351,7 +351,7 @@ static int start_input_stream(struct alsa_stream_in *in)
     unsigned int pcm_retry_count = PCM_OPEN_RETRIES;
 
     while (1) {
-        in->pcm = pcm_open(CARD_IN, PORT_BUILTIN_MIC, PCM_IN, &in->config);
+        in->pcm = pcm_open(CARD_IN, PORT_BUILTIN_MIC, PCM_IN | PCM_MONOTONIC, &in->config);
         if ((in->pcm != NULL) && pcm_is_ready(in->pcm)) {
             break;
         } else {
