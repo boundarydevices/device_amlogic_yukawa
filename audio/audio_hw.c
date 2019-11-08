@@ -656,6 +656,29 @@ static char * adev_get_parameters(const struct audio_hw_device *dev,
     return strdup("");
 }
 
+static void set_mic_characteristics(struct audio_microphone_characteristic_t* mic_data) {
+    strcpy(mic_data->device_id, "builtin_mic");
+    strcpy(mic_data->address, "top");
+    mic_data->sensitivity = -37.0;
+    mic_data->max_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
+    mic_data->min_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
+    mic_data->orientation.x = 0.0f;
+    mic_data->orientation.y = 0.0f;
+    mic_data->orientation.z = 0.0f;
+    mic_data->geometric_location.x = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
+    mic_data->geometric_location.y = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
+    mic_data->geometric_location.z = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
+}
+
+static int adev_get_microphones(const struct audio_hw_device* dev,
+                                struct audio_microphone_characteristic_t* mic_array,
+                                size_t* mic_count) {
+    ALOGV("adev_get_microphones");
+    set_mic_characteristics(mic_array);
+    *mic_count = 1;
+    return 0;
+}
+
 static int adev_init_check(const struct audio_hw_device *dev)
 {
     ALOGV("adev_init_check");
@@ -864,6 +887,7 @@ static int adev_open(const hw_module_t* module, const char* name,
     adev->hw_device.open_input_stream = adev_open_input_stream;
     adev->hw_device.close_input_stream = adev_close_input_stream;
     adev->hw_device.dump = adev_dump;
+    adev->hw_device.get_microphones = adev_get_microphones;
 
     adev->devices = AUDIO_DEVICE_NONE;
 
