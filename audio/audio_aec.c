@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// clang-format off
 /*
  * Typical AEC signal flow:
  *
@@ -60,6 +61,7 @@
  *                |/
  *
  */
+// clang-format on
 
 #define LOG_TAG "audio_hw_aec"
 // #define LOG_NDEBUG 0
