@@ -27,8 +27,10 @@ LOCAL_MODULE := audio.primary.$(TARGET_BOARD_PLATFORM)
 LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_VENDOR_MODULE := true
 
-LOCAL_SRC_FILES := audio_hw.c
-LOCAL_SHARED_LIBRARIES := liblog libcutils libtinyalsa libaudioroute
+LOCAL_SRC_FILES := audio_hw.c \
+    audio_aec.c \
+    fifo_wrapper.cpp
+LOCAL_SHARED_LIBRARIES := liblog libcutils libtinyalsa libaudioroute libaudioutils
 LOCAL_CFLAGS := -Wno-unused-parameter
 LOCAL_C_INCLUDES += \
         external/tinyalsa/include \
@@ -38,10 +40,7 @@ LOCAL_C_INCLUDES += \
         system/media/audio_effects/include
 
 ifneq ($(findstring google_aec, $(call all-makefiles-under,$(TOPDIR)vendor/amlogic/yukawa)),)
-    LOCAL_SRC_FILES += \
-        audio_aec.c \
-        fifo_wrapper.cpp
-    LOCAL_SHARED_LIBRARIES += google_aec libaudioutils
+    LOCAL_SHARED_LIBRARIES += google_aec
     LOCAL_CFLAGS += -DAEC_HAL
 endif
 
