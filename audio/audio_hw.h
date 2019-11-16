@@ -30,7 +30,15 @@
 #define CODEC_BASE_FRAME_COUNT 32
 
 #define CHANNEL_STEREO 2
+
+#ifdef AEC_HAL
 #define NUM_AEC_REFERENCE_CHANNELS 1
+#else
+/* App AEC uses 2-channel reference */
+#define NUM_AEC_REFERENCE_CHANNELS 2
+#endif /* #ifdef AEC_HAL */
+
+#define DEBUG_AEC 0
 
 #define PCM_OPEN_RETRIES 100
 #define PCM_OPEN_WAIT_TIME_MS 20
@@ -80,6 +88,7 @@ struct alsa_stream_in {
     struct alsa_audio_device *dev;
     int read_threshold;
     unsigned int read;
+    audio_source_t source;
 };
 
 struct alsa_stream_out {
@@ -102,6 +111,7 @@ struct alsa_stream_out {
  * datatypes as the corresponding arguments to that function. */
 struct aec_info {
     struct timespec timestamp;
+    uint64_t timestamp_usec;
     unsigned int available;
     size_t bytes;
 };
