@@ -16,3 +16,6 @@ endif
 
 PRODUCT_COPY_FILES +=  $(LOCAL_DTB):meson-sm1-sei610.dtb
 
+# Feature permissions
+PRODUCT_COPY_FILES += \
+    device/amlogic/yukawa/permissions/yukawa.xml:/system/etc/sysconfig/yukawa.xml
