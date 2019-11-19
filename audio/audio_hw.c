@@ -65,8 +65,8 @@ static void timestamp_adjust(struct timespec* ts, ssize_t frames, uint32_t sampl
 
 /* Helper function to get PCM hardware timestamp.
  * Only the field 'timestamp' of argument 'ts' is updated. */
-static int get_pcm_timestamp(struct pcm *pcm, uint32_t sample_rate,
-                                struct aec_info *info) {
+static int get_pcm_timestamp(struct pcm* pcm, uint32_t sample_rate, struct aec_info* info,
+                             bool isOutput) {
     int ret = 0;
     if (pcm_get_htimestamp(pcm, &info->available, &info->timestamp) < 0) {
         ALOGE("Error getting PCM timestamp!");
@@ -76,7 +76,7 @@ static int get_pcm_timestamp(struct pcm *pcm, uint32_t sample_rate,
     }
     ssize_t frames;
     if (isOutput) {
-        frames = pcm_get_buffer_size(pcm) - info->available,
+        frames = pcm_get_buffer_size(pcm) - info->available;
     } else {
         frames = -info->available; /* rewind timestamp */
     }
