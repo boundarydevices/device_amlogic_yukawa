@@ -47,8 +47,7 @@
 #include "audio_hw.h"
 #include "audio_aec.h"
 
-
-static void timestamp_adjust(struct timespec *ts, size_t frames, uint32_t sampling_rate) {
+static void timestamp_adjust(struct timespec* ts, ssize_t frames, uint32_t sampling_rate) {
     /* This function assumes the adjustment (in nsec) is less than the max value of long,
      * which for 32-bit long this is 2^31 * 1e-9 seconds, slightly over 2 seconds.
      * For 64-bit long it is  9e+9 seconds. */
@@ -57,6 +56,10 @@ static void timestamp_adjust(struct timespec *ts, size_t frames, uint32_t sampli
     while (ts->tv_nsec > 1E9L) {
         ts->tv_sec++;
         ts->tv_nsec -= 1E9L;
+    }
+    if (ts->tv_nsec < 0) {
+        ts->tv_sec--;
+        ts->tv_nsec += 1E9L;
     }
 }
 
@@ -71,10 +74,13 @@ static int get_pcm_timestamp(struct pcm *pcm, uint32_t sample_rate,
         info->timestamp.tv_nsec = 0;
         return -EINVAL;
     }
-    timestamp_adjust(
-        &info->timestamp,
-        pcm_get_buffer_size(pcm) - info->available,
-        sample_rate);
+    ssize_t frames;
+    if (isOutput) {
+        frames = pcm_get_buffer_size(pcm) - info->available,
+    } else {
+        frames = -info->available; /* rewind timestamp */
+    }
+    timestamp_adjust(&info->timestamp, frames, sample_rate);
     return ret;
 }
 
@@ -272,7 +278,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         out->written += out_frames;
 
         struct aec_info info;
-        get_pcm_timestamp(out->pcm, out->config.rate, &info);
+        get_pcm_timestamp(out->pcm, out->config.rate, &info, true /*isOutput*/);
         info.bytes = out_frames * frame_size;
         int aec_ret = write_to_reference_fifo(adev->aec, (void *)buffer, &info);
         if (aec_ret) {
@@ -533,6 +539,8 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
     pthread_mutex_unlock(&adev->lock);
 
     ret = pcm_read(in->pcm, buffer, in_frames * frame_size);
+    struct aec_info info;
+    get_pcm_timestamp(in->pcm, in->config.rate, &info, false /*isOutput*/);
     if (ret == 0) {
         in->read += in_frames;
     }
@@ -554,10 +562,7 @@ exit:
         /* Process AEC if available */
         /* TODO move to a separate thread */
         if (!adev->mic_mute) {
-            struct aec_info info;
-            get_pcm_timestamp(in->pcm, in->config.rate, &info);
             info.bytes = bytes;
-
             int aec_ret = process_aec(adev->aec, buffer, &info);
             if (aec_ret) {
                 ALOGE("process_aec returned error code %d", aec_ret);
