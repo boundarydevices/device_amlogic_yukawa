@@ -18,11 +18,12 @@
 //#define LOG_NDEBUG 0
 
 #include <errno.h>
+#include <inttypes.h>
 #include <malloc.h>
 #include <pthread.h>
 #include <stdint.h>
-#include <sys/time.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <log/log.h>
@@ -275,7 +276,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
 
     ret = pcm_write(out->pcm, buffer, out_frames * frame_size);
     if (ret == 0) {
-        out->written += out_frames;
+        out->frames_written += out_frames;
 
         struct aec_info info;
         get_pcm_timestamp(out->pcm, out->config.rate, &info, true /*isOutput*/);
@@ -315,7 +316,7 @@ static int out_get_presentation_position(const struct audio_stream_out *stream,
             unsigned int avail;
             if (pcm_get_htimestamp(out->pcm, &avail, timestamp) == 0) {
                 size_t kernel_buffer_size = out->config.period_size * out->config.period_count;
-                int64_t signed_frames = out->written - kernel_buffer_size + avail;
+                int64_t signed_frames = out->frames_written - kernel_buffer_size + avail;
                 if (signed_frames >= 0) {
                     *frames = signed_frames;
                     ret = 0;
@@ -499,12 +500,17 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
         info.bytes = bytes;
 
         if (!adev->aec->spk_running) {
+            struct timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            in->timestamp_nsec = now.tv_sec * 1000000000LL + now.tv_nsec;
             memset(buffer, 0, bytes);
             usleep((int64_t)bytes * 1000000 / audio_stream_in_frame_size(stream) /
                    in_get_sample_rate(&stream->common));
         } else {
             get_reference_samples(adev->aec, buffer, &info);
+            in->timestamp_nsec = 1000 * info.timestamp_usec;
         }
+        in->frames_read += in_frames;
 
 #if DEBUG_AEC
         FILE* fp_ref = fopen("/data/local/traces/aec_ref.pcm", "a+");
@@ -513,6 +519,13 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
             fclose(fp_ref);
         } else {
             ALOGE("AEC debug: Could not open file aec_ref.pcm!");
+        }
+        FILE* fp_ref_ts = fopen("/data/local/traces/aec_ref_timestamps.txt", "a+");
+        if (fp_ref_ts) {
+            fprintf(fp_ref_ts, "%" PRIu64 "\n", in->timestamp_nsec);
+            fclose(fp_ref_ts);
+        } else {
+            ALOGE("AEC debug: Could not open file aec_ref_timestamps.txt!");
         }
 #endif
         return info.bytes;
@@ -542,7 +555,8 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
     struct aec_info info;
     get_pcm_timestamp(in->pcm, in->config.rate, &info, false /*isOutput*/);
     if (ret == 0) {
-        in->read += in_frames;
+        in->frames_read += in_frames;
+        in->timestamp_nsec = info.timestamp.tv_sec * 1000000000LL + info.timestamp.tv_nsec;
     }
     else {
         ALOGE("pcm_read failed with code %d", ret);
@@ -578,9 +592,30 @@ exit:
     } else {
         ALOGE("AEC debug: Could not open file aec_in.pcm!");
     }
+    FILE* fp_mic_ts = fopen("/data/local/traces/aec_in_timestamps.txt", "a+");
+    if (fp_mic_ts) {
+        fprintf(fp_mic_ts, "%" PRIu64 "\n", in->timestamp_nsec);
+        fclose(fp_mic_ts);
+    } else {
+        ALOGE("AEC debug: Could not open file aec_in_timestamps.txt!");
+    }
 #endif
 
     return bytes;
+}
+
+static int in_get_capture_position(const struct audio_stream_in* stream, int64_t* frames,
+                                   int64_t* time) {
+    if (stream == NULL || frames == NULL || time == NULL) {
+        return -EINVAL;
+    }
+    struct alsa_stream_in* in = (struct alsa_stream_in*)stream;
+
+    *frames = in->frames_read;
+    *time = in->timestamp_nsec;
+    ALOGV("%s: source: %d, timestamp (nsec): %" PRIu64, __func__, in->source, *time);
+
+    return 0;
 }
 
 static uint32_t in_get_input_frames_lost(struct audio_stream_in *stream)
@@ -829,6 +864,7 @@ static int adev_open_input_stream(struct audio_hw_device* dev, audio_io_handle_t
     in->stream.set_gain = in_set_gain;
     in->stream.read = in_read;
     in->stream.get_input_frames_lost = in_get_input_frames_lost;
+    in->stream.get_capture_position = in_get_capture_position;
 
     in->config.channels = CHANNEL_STEREO;
     if (source == AUDIO_SOURCE_ECHO_REFERENCE) {
@@ -882,6 +918,8 @@ static int adev_open_input_stream(struct audio_hw_device* dev, audio_io_handle_t
 #if DEBUG_AEC
     remove("/data/local/traces/aec_ref.pcm");
     remove("/data/local/traces/aec_in.pcm");
+    remove("/data/local/traces/aec_ref_timestamps.txt");
+    remove("/data/local/traces/aec_in_timestamps.txt");
 #endif
     return ret;
 }
