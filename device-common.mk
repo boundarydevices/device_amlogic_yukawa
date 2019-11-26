@@ -73,7 +73,7 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES +=  vulkan.yukawa.so 
 
 # Bluetooth
-PRODUCT_PACKAGES += android.hardware.bluetooth@1.0-service.btlinux
+PRODUCT_PACKAGES += android.hardware.bluetooth@1.1-service.btlinux
 
 # Wifi
 PRODUCT_PACKAGES += libwpa_client wpa_supplicant hostapd wificond wifilogd wpa_cli
