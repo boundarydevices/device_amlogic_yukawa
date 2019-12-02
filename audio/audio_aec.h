@@ -95,6 +95,9 @@ void destroy_aec_mic_config (struct aec_t *aec);
  * This is used by process_aec() to determine if AEC processing is to be run. */
 void aec_set_spk_running (struct aec_t *aec, bool state);
 
+/* Used to communicate playback state (running or not) to the caller. */
+bool aec_get_spk_running(struct aec_t* aec);
+
 /* Write audio samples to AEC reference FIFO for use in AEC.
  * Both audio samples and timestamps are added in FIFO fashion.
  * Must be called after every write to PCM.

@@ -34,14 +34,15 @@
 #include <system/audio.h>
 #include <hardware/audio.h>
 
-#include <sound/asound.h>
-#include <tinyalsa/asoundlib.h>
-#include <audio_utils/resampler.h>
-#include <audio_utils/echo_reference.h>
-#include <hardware/audio_effect.h>
-#include <hardware/audio_alsaops.h>
 #include <audio_effects/effect_aec.h>
 #include <audio_route/audio_route.h>
+#include <audio_utils/clock.h>
+#include <audio_utils/echo_reference.h>
+#include <audio_utils/resampler.h>
+#include <hardware/audio_alsaops.h>
+#include <hardware/audio_effect.h>
+#include <sound/asound.h>
+#include <tinyalsa/asoundlib.h>
 
 #include <sys/ioctl.h>
 
@@ -499,16 +500,29 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
         struct aec_info info;
         info.bytes = bytes;
 
-        if (!adev->aec->spk_running) {
-            struct timespec now;
-            clock_gettime(CLOCK_MONOTONIC, &now);
-            in->timestamp_nsec = now.tv_sec * 1000000000LL + now.tv_nsec;
+        const uint64_t time_increment_nsec = (uint64_t)bytes * NANOS_PER_SECOND /
+                                             audio_stream_in_frame_size(stream) /
+                                             in_get_sample_rate(&stream->common);
+        if (!aec_get_spk_running(adev->aec)) {
+            if (in->timestamp_nsec == 0) {
+                struct timespec now;
+                clock_gettime(CLOCK_MONOTONIC, &now);
+                const uint64_t timestamp_nsec = audio_utils_ns_from_timespec(&now);
+                in->timestamp_nsec = timestamp_nsec;
+            } else {
+                in->timestamp_nsec += time_increment_nsec;
+            }
             memset(buffer, 0, bytes);
-            usleep((int64_t)bytes * 1000000 / audio_stream_in_frame_size(stream) /
-                   in_get_sample_rate(&stream->common));
+            const uint64_t time_increment_usec = time_increment_nsec / 1000;
+            usleep(time_increment_usec);
         } else {
-            get_reference_samples(adev->aec, buffer, &info);
-            in->timestamp_nsec = 1000 * info.timestamp_usec;
+            int ref_ret = get_reference_samples(adev->aec, buffer, &info);
+            if ((ref_ret) || (info.timestamp_usec == 0)) {
+                memset(buffer, 0, bytes);
+                in->timestamp_nsec += time_increment_nsec;
+            } else {
+                in->timestamp_nsec = 1000 * info.timestamp_usec;
+            }
         }
         in->frames_read += in_frames;
 
@@ -556,7 +570,7 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
     get_pcm_timestamp(in->pcm, in->config.rate, &info, false /*isOutput*/);
     if (ret == 0) {
         in->frames_read += in_frames;
-        in->timestamp_nsec = info.timestamp.tv_sec * 1000000000LL + info.timestamp.tv_nsec;
+        in->timestamp_nsec = audio_utils_ns_from_timespec(&info.timestamp);
     }
     else {
         ALOGE("pcm_read failed with code %d", ret);
