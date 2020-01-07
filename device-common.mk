@@ -53,6 +53,9 @@ PRODUCT_PACKAGES += \
     com.android.media.tv.remoteprovider \
     InputDevices
 
+PRODUCT_PACKAGES += \
+    LeanbackIME
+
 ifeq (,$(filter $(TARGET_PRODUCT),yukawa_gms yukawa_sei510_gms))
 PRODUCT_PACKAGES += \
     TVLauncherNoGms \
