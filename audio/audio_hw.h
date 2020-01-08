@@ -103,6 +103,7 @@ struct alsa_stream_out {
     struct alsa_audio_device *dev;
     int write_threshold;
     unsigned int frames_written;
+    struct timespec timestamp;
 };
 
 /* 'bytes' are the number of bytes written to audio FIFO, for which 'timestamp' is valid.
