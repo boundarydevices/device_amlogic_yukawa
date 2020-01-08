@@ -281,6 +281,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
 
         struct aec_info info;
         get_pcm_timestamp(out->pcm, out->config.rate, &info, true /*isOutput*/);
+        out->timestamp = info.timestamp;
         info.bytes = out_frames * frame_size;
         int aec_ret = write_to_reference_fifo(adev->aec, (void *)buffer, &info);
         if (aec_ret) {
@@ -310,22 +311,17 @@ static int out_get_render_position(const struct audio_stream_out *stream,
 static int out_get_presentation_position(const struct audio_stream_out *stream,
                                    uint64_t *frames, struct timespec *timestamp)
 {
-    struct alsa_stream_out *out = (struct alsa_stream_out *)stream;
-    int ret = -1;
+    if (stream == NULL || frames == NULL || timestamp == NULL) {
+        return -EINVAL;
+    }
+    struct alsa_stream_out* out = (struct alsa_stream_out*)stream;
 
-        if (out->pcm) {
-            unsigned int avail;
-            if (pcm_get_htimestamp(out->pcm, &avail, timestamp) == 0) {
-                size_t kernel_buffer_size = out->config.period_size * out->config.period_count;
-                int64_t signed_frames = out->frames_written - kernel_buffer_size + avail;
-                if (signed_frames >= 0) {
-                    *frames = signed_frames;
-                    ret = 0;
-                }
-            }
-        }
+    *frames = out->frames_written;
+    *timestamp = out->timestamp;
+    ALOGV("%s: frames: %" PRIu64 ", timestamp (nsec): %" PRIu64, __func__, *frames,
+          audio_utils_ns_from_timespec(timestamp));
 
-    return ret;
+    return 0;
 }
 
 
