@@ -1,3 +1,7 @@
+ifndef TARGET_KERNEL_USE
+TARGET_KERNEL_USE=4.19
+endif
+
 $(call inherit-product, device/amlogic/yukawa/device-common.mk)
 
 ifeq ($(TARGET_VIM3L),)
@@ -7,9 +11,9 @@ PRODUCT_PACKAGES += \
     android.hardware.light@2.0-impl:64 \
     android.hardware.light@2.0-service
 
-TARGET_DTB := meson-sm1-sei610.dtb
+TARGET_DTB := meson-sm1-sei610.dtb-$(TARGET_KERNEL_USE)
 else
-TARGET_DTB := meson-sm1-khadas-vim3l.dtb
+TARGET_DTB := meson-sm1-khadas-vim3l.dtb-$(TARGET_KERNEL_USE)
 endif
 
 BOARD_KERNEL_DTB := device/amlogic/yukawa-kernel/$(TARGET_DTB)
