@@ -49,6 +49,16 @@
 #include "audio_hw.h"
 #include "audio_aec.h"
 
+static int get_audio_output_port(audio_devices_t devices) {
+    /* Prefer HDMI, default to internal speaker */
+    int port = PORT_INTERNAL_SPEAKER;
+    if (devices & AUDIO_DEVICE_OUT_HDMI) {
+        port = PORT_HDMI;
+    }
+
+    return port;
+}
+
 static void timestamp_adjust(struct timespec* ts, ssize_t frames, uint32_t sampling_rate) {
     /* This function assumes the adjustment (in nsec) is less than the max value of long,
      * which for 32-bit long this is 2^31 * 1e-9 seconds, slightly over 2 seconds.
@@ -99,9 +109,10 @@ static int start_output_stream(struct alsa_stream_out *out)
     out->config.avail_min = PLAYBACK_PERIOD_SIZE;
     out->unavailable = true;
     unsigned int pcm_retry_count = PCM_OPEN_RETRIES;
+    int out_port = get_audio_output_port(out->devices);
 
     while (1) {
-        out->pcm = pcm_open(CARD_OUT, PORT_HDMI, PCM_OUT | PCM_MONOTONIC, &out->config);
+        out->pcm = pcm_open(CARD_OUT, out_port, PCM_OUT | PCM_MONOTONIC, &out->config);
         if ((out->pcm != NULL) && pcm_is_ready(out->pcm)) {
             break;
         } else {
@@ -215,9 +226,9 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
         val = atoi(value);
         pthread_mutex_lock(&adev->lock);
         pthread_mutex_lock(&out->lock);
-        if (((adev->devices & AUDIO_DEVICE_OUT_ALL) != val) && (val != 0)) {
-            adev->devices &= ~AUDIO_DEVICE_OUT_ALL;
-            adev->devices |= val;
+        if (((out->devices & AUDIO_DEVICE_OUT_ALL) != val) && (val != 0)) {
+            out->devices &= ~AUDIO_DEVICE_OUT_ALL;
+            out->devices |= val;
         }
         pthread_mutex_unlock(&out->lock);
         pthread_mutex_unlock(&adev->lock);
@@ -255,6 +266,8 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     struct alsa_audio_device *adev = out->dev;
     size_t frame_size = audio_stream_out_frame_size(stream);
     size_t out_frames = bytes / frame_size;
+
+    ALOGV("%s: devices: %d, bytes %zu", __func__, out->devices, bytes);
 
     /* acquiring hw device mutex systematically is useful if a low priority thread is waiting
      * on the output stream mutex - e.g. executing select_mode() while holding the hw device
@@ -658,7 +671,9 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     struct pcm_params *params;
     int ret = 0;
 
-    params = pcm_params_get(CARD_OUT, PORT_HDMI, PCM_OUT);
+    int out_port = get_audio_output_port(devices);
+
+    params = pcm_params_get(CARD_OUT, out_port, PCM_OUT);
     if (!params)
         return -ENOSYS;
 
@@ -700,12 +715,13 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         ret = -EINVAL;
     }
 
-    ALOGI("adev_open_output_stream selects channels=%d rate=%d format=%d",
-                out->config.channels, out->config.rate, out->config.format);
+    ALOGI("adev_open_output_stream selects channels=%d rate=%d format=%d, devices=%d",
+          out->config.channels, out->config.rate, out->config.format, devices);
 
     out->dev = ladev;
     out->standby = 1;
     out->unavailable = false;
+    out->devices = devices;
 
     config->format = out_get_format(&out->stream.common);
     config->channel_mask = out_get_channels(&out->stream.common);
@@ -899,6 +915,7 @@ static int adev_open_input_stream(struct audio_hw_device* dev, audio_io_handle_t
     in->standby = true;
     in->unavailable = false;
     in->source = source;
+    in->devices = devices;
 
     config->format = in_get_format(&in->stream.common);
     config->channel_mask = in_get_channels(&in->stream.common);
@@ -996,8 +1013,6 @@ static int adev_open(const hw_module_t* module, const char* name,
     adev->hw_device.close_input_stream = adev_close_input_stream;
     adev->hw_device.dump = adev_dump;
     adev->hw_device.get_microphones = adev_get_microphones;
-
-    adev->devices = AUDIO_DEVICE_NONE;
 
     *device = &adev->hw_device.common;
 
