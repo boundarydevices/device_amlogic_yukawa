@@ -22,6 +22,7 @@
 
 #define CARD_OUT 0
 #define PORT_HDMI 0
+#define PORT_INTERNAL_SPEAKER 1
 #define CARD_IN 0
 #define PORT_BUILTIN_MIC 3
 
@@ -68,7 +69,6 @@ struct alsa_audio_device {
     struct audio_hw_device hw_device;
 
     pthread_mutex_t lock;   /* see notes in in_read/out_write on mutex acquisition order */
-    int devices;
     struct alsa_stream_in *active_input;
     struct alsa_stream_out *active_output;
     struct audio_route *audio_route;
@@ -81,6 +81,7 @@ struct alsa_stream_in {
     struct audio_stream_in stream;
 
     pthread_mutex_t lock;   /* see note in in_read() on mutex acquisition order */
+    audio_devices_t devices;
     struct pcm_config config;
     struct pcm *pcm;
     bool unavailable;
@@ -96,6 +97,7 @@ struct alsa_stream_out {
     struct audio_stream_out stream;
 
     pthread_mutex_t lock;   /* see note in out_write() on mutex acquisition order */
+    audio_devices_t devices;
     struct pcm_config config;
     struct pcm *pcm;
     bool unavailable;
