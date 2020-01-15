@@ -235,7 +235,7 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
     }
 
     str_parms_destroy(parms);
-    return ret;
+    return 0;
 }
 
 static char * out_get_parameters(const struct audio_stream *stream, const char *keys)
@@ -255,7 +255,7 @@ static int out_set_volume(struct audio_stream_out *stream, float left,
         float right)
 {
     ALOGV("out_set_volume: Left:%f Right:%f", left, right);
-    return 0;
+    return -ENOSYS;
 }
 
 static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
@@ -316,9 +316,8 @@ exit:
 static int out_get_render_position(const struct audio_stream_out *stream,
         uint32_t *dsp_frames)
 {
-    *dsp_frames = 0;
     ALOGV("out_get_render_position: dsp_frames: %p", dsp_frames);
-    return -EINVAL;
+    return -ENOSYS;
 }
 
 static int out_get_presentation_position(const struct audio_stream_out *stream,
@@ -355,7 +354,7 @@ static int out_get_next_write_timestamp(const struct audio_stream_out *stream,
 {
     *timestamp = 0;
     ALOGV("out_get_next_write_timestamp: %ld", (long int)(*timestamp));
-    return -EINVAL;
+    return -ENOSYS;
 }
 
 /** audio_stream_in implementation **/
@@ -797,7 +796,7 @@ static int adev_init_check(const struct audio_hw_device *dev)
 static int adev_set_voice_volume(struct audio_hw_device *dev, float volume)
 {
     ALOGV("adev_set_voice_volume: %f", volume);
-    return -ENOSYS;
+    return 0;
 }
 
 static int adev_set_master_volume(struct audio_hw_device *dev, float volume)
