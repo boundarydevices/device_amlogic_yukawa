@@ -388,6 +388,22 @@ static int start_input_stream(struct alsa_stream_in *in)
     return 0;
 }
 
+static void get_mic_characteristics(struct audio_microphone_characteristic_t* mic_data,
+                                    size_t* mic_count) {
+    *mic_count = 1;
+    strcpy(mic_data->device_id, "builtin_mic");
+    strcpy(mic_data->address, "top");
+    mic_data->sensitivity = -37.0;
+    mic_data->max_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
+    mic_data->min_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
+    mic_data->orientation.x = 0.0f;
+    mic_data->orientation.y = 0.0f;
+    mic_data->orientation.z = 0.0f;
+    mic_data->geometric_location.x = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
+    mic_data->geometric_location.y = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
+    mic_data->geometric_location.z = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
+}
+
 static uint32_t in_get_sample_rate(const struct audio_stream *stream)
 {
     struct alsa_stream_in *in = (struct alsa_stream_in *)stream;
@@ -472,6 +488,24 @@ static int in_standby(struct audio_stream *stream)
 
 static int in_dump(const struct audio_stream *stream, int fd)
 {
+    struct alsa_stream_in* in = (struct alsa_stream_in*)stream;
+    if (in->source == AUDIO_SOURCE_ECHO_REFERENCE) {
+        return 0;
+    }
+
+    struct audio_microphone_characteristic_t mic_array[AUDIO_MICROPHONE_MAX_COUNT];
+    size_t mic_count;
+
+    get_mic_characteristics(mic_array, &mic_count);
+
+    dprintf(fd, "  Microphone count: %zd\n", mic_count);
+    size_t idx;
+    for (idx = 0; idx < mic_count; idx++) {
+        dprintf(fd, "  Microphone: %zd\n", idx);
+        dprintf(fd, "    Address: %s\n", mic_array[idx].address);
+        dprintf(fd, "    Sensitivity (dB): %.2f\n", mic_array[idx].sensitivity);
+    }
+
     return 0;
 }
 
@@ -764,26 +798,11 @@ static char * adev_get_parameters(const struct audio_hw_device *dev,
     return strdup("");
 }
 
-static void set_mic_characteristics(struct audio_microphone_characteristic_t* mic_data) {
-    strcpy(mic_data->device_id, "builtin_mic");
-    strcpy(mic_data->address, "top");
-    mic_data->sensitivity = -37.0;
-    mic_data->max_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
-    mic_data->min_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
-    mic_data->orientation.x = 0.0f;
-    mic_data->orientation.y = 0.0f;
-    mic_data->orientation.z = 0.0f;
-    mic_data->geometric_location.x = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
-    mic_data->geometric_location.y = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
-    mic_data->geometric_location.z = AUDIO_MICROPHONE_COORDINATE_UNKNOWN;
-}
-
 static int adev_get_microphones(const struct audio_hw_device* dev,
                                 struct audio_microphone_characteristic_t* mic_array,
                                 size_t* mic_count) {
     ALOGV("adev_get_microphones");
-    set_mic_characteristics(mic_array);
-    *mic_count = 1;
+    get_mic_characteristics(mic_array, mic_count);
     return 0;
 }
 
