@@ -12,6 +12,7 @@
 /sys/devices/platform/soc/ffe03000.sd/mmc_host(/.*)?             u:object_r:sysfs_suspend_stats:s0
 /sys/devices/platform/soc/ff800000.bus/ff8000a8.rtc/wakeup(/.*)? u:object_r:sysfs_suspend_stats:s0
 /sys/devices/platform/soc/ff800000.bus/ff8000a8.rtc/rtc/rtc0/wakeup1(/.*)? u:object_r:sysfs_suspend_stats:s0
+/sys/devices/platform/soc/ff800000.bus/ff8000a8.rtc/rtc/rtc0/hctosys       u:object_r:sysfs_rtc:s0
 /sys/devices/platform/soc/ffd00000.bus/ffd24000.serial(/.*)?     u:object_r:sysfs_suspend_stats:s0
 /sys/devices/platform/soc/ffe09000.usb/ff500000.usb(/.*)?        u:object_r:sysfs_suspend_stats:s0
 
