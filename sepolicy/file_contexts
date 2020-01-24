@@ -9,6 +9,12 @@
 /sys/devices/virtual/thermal(/.*)?      u:object_r:sysfs_thermal:s0
 /sys/class/thermal(/.*)?                u:object_r:sysfs_thermal:s0
 
+/sys/devices/platform/soc/ffe03000.sd/mmc_host(/.*)?             u:object_r:sysfs_suspend_stats:s0
+/sys/devices/platform/soc/ff800000.bus/ff8000a8.rtc/wakeup(/.*)? u:object_r:sysfs_suspend_stats:s0
+/sys/devices/platform/soc/ff800000.bus/ff8000a8.rtc/rtc/rtc0/wakeup1(/.*)? u:object_r:sysfs_suspend_stats:s0
+/sys/devices/platform/soc/ffd00000.bus/ffd24000.serial(/.*)?     u:object_r:sysfs_suspend_stats:s0
+/sys/devices/platform/soc/ffe09000.usb/ff500000.usb(/.*)?        u:object_r:sysfs_suspend_stats:s0
+
 # files in /vendor
 /(vendor|system/vendor)/lib(64)?/hw/gralloc\.yukawa\.so u:object_r:same_process_hal_file:s0
 /vendor/bin/hw/android\.hardware\.health@2\.0-service\.yukawa u:object_r:hal_health_default_exec:s0
