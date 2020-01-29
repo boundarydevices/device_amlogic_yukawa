@@ -5,30 +5,19 @@ endif
 $(call inherit-product, device/amlogic/yukawa/device-common.mk)
 
 ifeq ($(TARGET_VIM3L),)
-# Light HAL
-PRODUCT_PACKAGES += \
-    android.hardware.light-service \
-    lights-yukawa
-
-PRODUCT_PROPERTY_OVERRIDES += \
-    ro.hardware.lights=yukawa \
-    ro.product.device=sei610
-
-TARGET_DTB := meson-sm1-sei610.dtb-$(TARGET_KERNEL_USE)
+PRODUCT_PROPERTY_OVERRIDES += ro.product.device=sei610
 else
 PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3l
-TARGET_DTB := meson-sm1-khadas-vim3l.dtb-$(TARGET_KERNEL_USE)
 endif
 
-BOARD_KERNEL_DTB := device/amlogic/yukawa-kernel/$(TARGET_DTB)
+
+BOARD_KERNEL_DTB := device/amlogic/yukawa-kernel/
 
 ifeq ($(TARGET_PREBUILT_DTB),)
 LOCAL_DTB := $(BOARD_KERNEL_DTB)
 else
 LOCAL_DTB := $(TARGET_PREBUILT_DTB)
 endif
-
-PRODUCT_COPY_FILES +=  $(LOCAL_DTB):$(TARGET_DTB)
 
 # Feature permissions
 PRODUCT_COPY_FILES += \

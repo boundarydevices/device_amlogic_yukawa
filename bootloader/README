@@ -9,7 +9,7 @@ Download the toolchain : gcc-linaro-7.2.1-2017.11-x86_64_aarch64-elf
 Download U-Boot Source Code From :
         https://gitlab.com/baylibre/amlogic/atv/u-boot.git
 
-actual tag :  u-boot/v2020.04/seix10-20200421
+actual tag :  u-boot/v2020.04/seix10-20200706
 dev branch :  u-boot/v2020.04/integ
 
 link to U-Boot aosp release wiki page :
@@ -21,8 +21,8 @@ Compile:
         export CROSS_COMPILE=aarch64-elf-
         git clone https://gitlab.com/baylibre/amlogic/atv/u-boot.git
         cd u-boot
-        git checkout u-boot/v2020.04/seix10-20200421
-        make [sei510|sei610|sei610_ab]_defconfig
+        git checkout u-boot/v2020.04/seix10-20200706
+        make [sei510|sei610|sei610_ab|khadas-vim3l_android|khadas-vim3l_android_ab]_defconfig
         make
 
 Generate fip binary
