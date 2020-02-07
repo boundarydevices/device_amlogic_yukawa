@@ -23,7 +23,7 @@ LOCAL_MULTILIB := first
 LOCAL_HEADER_LIBRARIES := libhardware_headers
 LOCAL_SHARED_LIBRARIES := libc libcutils liblog
 LOCAL_CFLAGS += -Wall -Werror
-LOCAL_MODULE := lights.$(TARGET_BOARD_PLATFORM)
+LOCAL_MODULE := lights.yukawa
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)

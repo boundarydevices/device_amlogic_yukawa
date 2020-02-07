@@ -11,6 +11,8 @@ PRODUCT_PACKAGES += \
     android.hardware.light@2.0-impl:64 \
     android.hardware.light@2.0-service
 
+PRODUCT_PROPERTY_OVERRIDES += ro.hardware.lights=yukawa
+
 TARGET_DTB := meson-sm1-sei610.dtb-$(TARGET_KERNEL_USE)
 else
 TARGET_DTB := meson-sm1-khadas-vim3l.dtb-$(TARGET_KERNEL_USE)
