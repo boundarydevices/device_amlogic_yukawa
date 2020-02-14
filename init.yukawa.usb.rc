@@ -7,7 +7,7 @@ on boot
     write /config/usb_gadget/g1/bcdDevice 0x0223
     write /config/usb_gadget/g1/strings/0x409/serialnumber ${ro.serialno}
     write /config/usb_gadget/g1/strings/0x409/manufacturer SEI
-    write /config/usb_gadget/g1/strings/0x409/product sei510
+    write /config/usb_gadget/g1/strings/0x409/product ${ro.hardware}
     mkdir /config/usb_gadget/g1/functions/ffs.adb
     mkdir /config/usb_gadget/g1/functions/ffs.mtp
     mkdir /config/usb_gadget/g1/functions/ffs.ptp
