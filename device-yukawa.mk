@@ -7,9 +7,8 @@ $(call inherit-product, device/amlogic/yukawa/device-common.mk)
 ifeq ($(TARGET_VIM3L),)
 # Light HAL
 PRODUCT_PACKAGES += \
-    lights.yukawa \
-    android.hardware.light@2.0-impl:64 \
-    android.hardware.light@2.0-service
+    android.hardware.light-service \
+    lights-yukawa
 
 PRODUCT_PROPERTY_OVERRIDES += ro.hardware.lights=yukawa
 
