@@ -50,6 +50,9 @@
 #include "audio_aec.h"
 
 static int adev_get_mic_mute(const struct audio_hw_device* dev, bool* state);
+static int adev_get_microphones(const struct audio_hw_device* dev,
+                                struct audio_microphone_characteristic_t* mic_array,
+                                size_t* mic_count);
 
 static int get_audio_output_port(audio_devices_t devices) {
     /* Prefer HDMI, default to internal speaker */
@@ -393,8 +396,12 @@ static int start_input_stream(struct alsa_stream_in *in)
 static void get_mic_characteristics(struct audio_microphone_characteristic_t* mic_data,
                                     size_t* mic_count) {
     *mic_count = 1;
-    strcpy(mic_data->device_id, "builtin_mic");
-    strcpy(mic_data->address, "top");
+    memset(mic_data, 0, sizeof(struct audio_microphone_characteristic_t));
+    strlcpy(mic_data->device_id, "builtin_mic", AUDIO_MICROPHONE_ID_MAX_LEN - 1);
+    strlcpy(mic_data->address, "top", AUDIO_DEVICE_MAX_ADDRESS_LEN - 1);
+    memset(mic_data->channel_mapping, AUDIO_MICROPHONE_CHANNEL_MAPPING_UNUSED,
+           sizeof(mic_data->channel_mapping));
+    mic_data->device = AUDIO_DEVICE_IN_BUILTIN_MIC;
     mic_data->sensitivity = -37.0;
     mic_data->max_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
     mic_data->min_spl = AUDIO_MICROPHONE_SPL_UNKNOWN;
@@ -462,6 +469,25 @@ static size_t in_get_buffer_size(const struct audio_stream *stream)
     return buffer_size;
 }
 
+static int in_get_active_microphones(const struct audio_stream_in* stream,
+                                     struct audio_microphone_characteristic_t* mic_array,
+                                     size_t* mic_count) {
+    ALOGV("in_get_active_microphones");
+    if ((mic_array == NULL) || (mic_count == NULL)) {
+        return -EINVAL;
+    }
+    struct alsa_stream_in* in = (struct alsa_stream_in*)stream;
+    struct audio_hw_device* dev = (struct audio_hw_device*)in->dev;
+    bool mic_muted = false;
+    adev_get_mic_mute(dev, &mic_muted);
+    if ((in->source == AUDIO_SOURCE_ECHO_REFERENCE) || mic_muted) {
+        *mic_count = 0;
+        return 0;
+    }
+    adev_get_microphones(dev, mic_array, mic_count);
+    return 0;
+}
+
 static int do_input_standby(struct alsa_stream_in *in)
 {
     struct alsa_audio_device *adev = in->dev;
@@ -505,6 +531,7 @@ static int in_dump(const struct audio_stream *stream, int fd)
     for (idx = 0; idx < mic_count; idx++) {
         dprintf(fd, "  Microphone: %zd\n", idx);
         dprintf(fd, "    Address: %s\n", mic_array[idx].address);
+        dprintf(fd, "    Device: %d\n", mic_array[idx].device);
         dprintf(fd, "    Sensitivity (dB): %.2f\n", mic_array[idx].sensitivity);
     }
 
@@ -806,6 +833,9 @@ static int adev_get_microphones(const struct audio_hw_device* dev,
                                 struct audio_microphone_characteristic_t* mic_array,
                                 size_t* mic_count) {
     ALOGV("adev_get_microphones");
+    if ((mic_array == NULL) || (mic_count == NULL)) {
+        return -EINVAL;
+    }
     get_mic_characteristics(mic_array, mic_count);
     return 0;
 }
@@ -917,6 +947,7 @@ static int adev_open_input_stream(struct audio_hw_device* dev, audio_io_handle_t
     in->stream.read = in_read;
     in->stream.get_input_frames_lost = in_get_input_frames_lost;
     in->stream.get_capture_position = in_get_capture_position;
+    in->stream.get_active_microphones = in_get_active_microphones;
 
     in->config.channels = CHANNEL_STEREO;
     if (source == AUDIO_SOURCE_ECHO_REFERENCE) {
