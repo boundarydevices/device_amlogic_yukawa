@@ -41,7 +41,6 @@ using ::aidl::android::hardware::light::LightType;
 using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
-static pthread_once_t g_init = PTHREAD_ONCE_INIT;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct LightAddress {
@@ -178,6 +177,8 @@ class Lights : public BnLights {
                 break;
             case LightType::BLUETOOTH:
                 writeLed(BLUE_LED_FILE, color);
+                break;
+            default:
                 break;
         }
 
