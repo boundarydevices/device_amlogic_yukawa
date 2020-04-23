@@ -4,6 +4,8 @@ endif
 
 $(call inherit-product, device/amlogic/yukawa/device-common.mk)
 
+PRODUCT_PROPERTY_OVERRIDES += ro.product.device=sei510
+
 BOARD_KERNEL_DTB := device/amlogic/yukawa-kernel/meson-g12a-sei510.dtb-$(TARGET_KERNEL_USE)
 
 ifeq ($(TARGET_PREBUILT_DTB),)

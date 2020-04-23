@@ -10,10 +10,13 @@ PRODUCT_PACKAGES += \
     android.hardware.light-service \
     lights-yukawa
 
-PRODUCT_PROPERTY_OVERRIDES += ro.hardware.lights=yukawa
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.hardware.lights=yukawa \
+    ro.product.device=sei610
 
 TARGET_DTB := meson-sm1-sei610.dtb-$(TARGET_KERNEL_USE)
 else
+PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3l
 TARGET_DTB := meson-sm1-khadas-vim3l.dtb-$(TARGET_KERNEL_USE)
 endif
 
