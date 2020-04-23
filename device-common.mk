@@ -25,6 +25,16 @@ DEVICE_PACKAGE_OVERLAYS += device/google/atv/overlay
 
 PRODUCT_PACKAGES += llkd
 
+# Dynamic partitions
+PRODUCT_BUILD_SUPER_PARTITION := true
+PRODUCT_USE_DYNAMIC_PARTITIONS := true
+PRODUCT_USE_DYNAMIC_PARTITION_SIZE := true
+
+PRODUCT_PACKAGES += \
+	android.hardware.fastboot@1.0 \
+	android.hardware.fastboot@1.0-impl-mock \
+	fastbootd
+
 # All VNDK libraries (HAL interfaces, VNDK, VNDK-SP, LL-NDK)
 PRODUCT_PACKAGES += vndk_package
 
@@ -32,10 +42,19 @@ PRODUCT_PACKAGES += \
     android.hardware.health@2.0-service.yukawa \
     android.hardware.health@2.0-service
 
+ifeq ($(TARGET_AVB_ENABLE), true)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/fstab.ramdisk.common.avb:$(TARGET_COPY_OUT_RAMDISK)/fstab.yukawa
+else
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/fstab.ramdisk.common:$(TARGET_COPY_OUT_RAMDISK)/fstab.yukawa
+endif
+
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/fstab.yukawa:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.yukawa \
     $(LOCAL_PATH)/init.yukawa.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.yukawa.rc \
     $(LOCAL_PATH)/init.yukawa.usb.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.yukawa.usb.rc \
+    $(LOCAL_PATH)/init.recovery.hardware.rc:recovery/root/init.recovery.yukawa.rc \
     $(LOCAL_PATH)/ueventd.rc:$(TARGET_COPY_OUT_VENDOR)/ueventd.rc \
     $(LOCAL_PATH)/wpa_supplicant.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant.conf \
     $(LOCAL_PATH)/wpa_supplicant_overlay.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant_overlay.conf \
@@ -203,11 +222,6 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/amlogic/yukawa/media_xml/media_codecs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs.xml \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_google_audio.xml
-
-# Enable AVB
-BOARD_AVB_ENABLE := false
-BOARD_AVB_ALGORITHM := SHA256_RSA2048
-BOARD_AVB_ROLLBACK_INDEX := 0
 
 # Enable BT Pairing with button BTN_0 (key 256)
 PRODUCT_PACKAGES += YukawaService YukawaAndroidOverlay
