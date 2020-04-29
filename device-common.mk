@@ -25,6 +25,47 @@ DEVICE_PACKAGE_OVERLAYS += device/google/atv/overlay
 
 PRODUCT_PACKAGES += llkd
 
+ifeq ($(TARGET_USE_AB_SLOT), true)
+# A/B support
+PRODUCT_PACKAGES += \
+    otapreopt_script \
+    cppreopts.sh \
+    update_engine \
+    update_verifier
+
+AB_OTA_POSTINSTALL_CONFIG += \
+    RUN_POSTINSTALm=true \
+    POSTINSTALL_PATH=system/bin/otapreopt_script \
+    FILESYSTEM_TYPE=ext4 \
+    POSTINSTALL_OPTIONAL=true
+
+PRODUCT_PACKAGES += \
+    update_engine_sideload \
+    sg_write_buffer \
+    f2fs_io
+
+# The following modules are included in debuggable builds only.
+PRODUCT_PACKAGES_DEBUG += \
+    bootctl \
+    update_engine_client
+
+# Write flags to the vendor space in /misc partition.
+PRODUCT_PACKAGES += \
+    misc_writer
+
+PRODUCT_PACKAGES += \
+    fs_config_dirs \
+    fs_config_files
+
+# Boot control
+PRODUCT_PACKAGES += \
+    android.hardware.boot@1.0-impl \
+    android.hardware.boot@1.0-impl.recovery \
+    android.hardware.boot@1.0-service \
+	bootctrl.yukawa.recovery \
+	bootctrl.yukawa
+endif
+
 # Dynamic partitions
 PRODUCT_BUILD_SUPER_PARTITION := true
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
@@ -42,18 +83,31 @@ PRODUCT_PACKAGES += \
     android.hardware.health@2.0-service.yukawa \
     android.hardware.health@2.0-service
 
+ifeq ($(TARGET_USE_AB_SLOT), true)
 ifeq ($(TARGET_AVB_ENABLE), true)
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/fstab.ramdisk.common.avb:$(TARGET_COPY_OUT_RAMDISK)/fstab.yukawa
+    $(LOCAL_PATH)/fstab.yukawa.avb.ab:$(TARGET_COPY_OUT_RECOVERY)/root/first_stage_ramdisk/fstab.yukawa \
+    $(LOCAL_PATH)/fstab.yukawa.avb.ab:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.yukawa
 else
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/fstab.ramdisk.common:$(TARGET_COPY_OUT_RAMDISK)/fstab.yukawa
+    $(LOCAL_PATH)/fstab.yukawa.ab:$(TARGET_COPY_OUT_RECOVERY)/root/first_stage_ramdisk/fstab.yukawa \
+    $(LOCAL_PATH)/fstab.yukawa.ab:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.yukawa
+endif
+else
+ifeq ($(TARGET_AVB_ENABLE), true)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/fstab.ramdisk.common.avb:$(TARGET_COPY_OUT_RAMDISK)/fstab.yukawa \
+    $(LOCAL_PATH)/fstab.yukawa:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.yukawa
+else
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/fstab.ramdisk.common:$(TARGET_COPY_OUT_RAMDISK)/fstab.yukawa \
+    $(LOCAL_PATH)/fstab.yukawa:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.yukawa
+endif
 endif
 
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/fstab.yukawa:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.yukawa \
-    $(LOCAL_PATH)/init.yukawa.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.yukawa.rc \
-    $(LOCAL_PATH)/init.yukawa.usb.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.yukawa.usb.rc \
+    $(LOCAL_PATH)/init.yukawa.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.yukawa.rc \
+    $(LOCAL_PATH)/init.yukawa.usb.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.yukawa.usb.rc \
     $(LOCAL_PATH)/init.recovery.hardware.rc:recovery/root/init.recovery.yukawa.rc \
     $(LOCAL_PATH)/ueventd.rc:$(TARGET_COPY_OUT_VENDOR)/ueventd.rc \
     $(LOCAL_PATH)/wpa_supplicant.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant.conf \
@@ -82,6 +136,11 @@ PRODUCT_PACKAGES += \
     TVLauncherNoGms \
     TVRecommendationsNoGms
 endif
+
+PRODUCT_PACKAGES += llkd
+PRODUCT_PACKAGES += \
+    libhidltransport \
+    libhwbinder 
 
 PRODUCT_PROPERTY_OVERRIDES += ro.sf.lcd_density=320
 
