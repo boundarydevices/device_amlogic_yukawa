@@ -22,7 +22,7 @@ Compile:
         git clone https://gitlab.com/baylibre/amlogic/atv/u-boot.git
         cd u-boot
         git checkout u-boot/v2020.04/seix10-20200420
-        make [sei510|sei610]_defconfig
+        make [sei510|sei610|sei610_ab]_defconfig
         make
 
 Generate fip binary
