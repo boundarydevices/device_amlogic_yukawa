@@ -1,4 +1,4 @@
-import init.yukawa.usb.rc
+import /vendor/etc/init/hw/init.yukawa.usb.rc
 
 on early-init
     # mount debugfs
