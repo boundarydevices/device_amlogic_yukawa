@@ -117,13 +117,17 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/bt-wifi-firmware/fw_bcm4359c0_ag.bin:$(TARGET_COPY_OUT_VENDOR)/firmware/brcm/fw_bcm4359c0_ag.bin \
     $(LOCAL_PATH)/bt-wifi-firmware/nvram.txt:$(TARGET_COPY_OUT_VENDOR)/firmware/brcm/nvram.txt \
 
+ifeq ($(TARGET_USE_SAMPLE_LAUNCHER), true)
+PRODUCT_PACKAGES += \
+    TvSampleLeanbackLauncher
+endif
+
 # TV Specific Packages
 PRODUCT_PACKAGES += \
     LiveTv \
     google-tv-pairing-protocol \
     TvProvision \
     LeanbackSampleApp \
-    TvSampleLeanbackLauncher \
     tv_input.default \
     com.android.media.tv.remoteprovider \
     InputDevices
