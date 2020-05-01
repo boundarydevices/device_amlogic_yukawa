@@ -849,7 +849,7 @@ static int adev_init_check(const struct audio_hw_device *dev)
 static int adev_set_voice_volume(struct audio_hw_device *dev, float volume)
 {
     ALOGV("adev_set_voice_volume: %f", volume);
-    return 0;
+    return -ENOSYS;
 }
 
 static int adev_set_master_volume(struct audio_hw_device *dev, float volume)
