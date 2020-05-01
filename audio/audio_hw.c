@@ -49,6 +49,8 @@
 #include "audio_hw.h"
 #include "audio_aec.h"
 
+static int adev_get_mic_mute(const struct audio_hw_device* dev, bool* state);
+
 static int get_audio_output_port(audio_devices_t devices) {
     /* Prefer HDMI, default to internal speaker */
     int port = PORT_INTERNAL_SPEAKER;
@@ -621,7 +623,9 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
 exit:
     pthread_mutex_unlock(&in->lock);
 
-    if (adev->mic_mute) {
+    bool mic_muted = false;
+    adev_get_mic_mute((struct audio_hw_device*)adev, &mic_muted);
+    if (mic_muted) {
         memset(buffer, 0, bytes);
     }
 
@@ -631,7 +635,7 @@ exit:
     } else {
         /* Process AEC if available */
         /* TODO move to a separate thread */
-        if (!adev->mic_mute) {
+        if (!mic_muted) {
             info.bytes = bytes;
             int aec_ret = process_aec(adev->aec, buffer, &info);
             if (aec_ret) {
@@ -852,7 +856,9 @@ static int adev_set_mic_mute(struct audio_hw_device *dev, bool state)
 {
     ALOGV("adev_set_mic_mute: %d",state);
     struct alsa_audio_device *adev = (struct alsa_audio_device *)dev;
+    pthread_mutex_lock(&adev->lock);
     adev->mic_mute = state;
+    pthread_mutex_unlock(&adev->lock);
     return 0;
 }
 
@@ -860,7 +866,9 @@ static int adev_get_mic_mute(const struct audio_hw_device *dev, bool *state)
 {
     ALOGV("adev_get_mic_mute");
     struct alsa_audio_device *adev = (struct alsa_audio_device *)dev;
+    pthread_mutex_lock(&adev->lock);
     *state = adev->mic_mute;
+    pthread_mutex_unlock(&adev->lock);
     return 0;
 }
 
