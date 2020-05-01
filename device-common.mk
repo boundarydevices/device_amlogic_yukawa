@@ -213,7 +213,8 @@ PRODUCT_PACKAGES += \
     android.hardware.tv.cec@1.0-service \
     hdmi_cec.yukawa
 
-PRODUCT_PROPERTY_OVERRIDES += ro.hdmi.device_type=4
+PRODUCT_PROPERTY_OVERRIDES += ro.hdmi.device_type=4 \
+    persist.sys.hdmi.keep_awake=false
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/Generic.kl:$(TARGET_COPY_OUT_VENDOR)/usr/keylayout/Generic.kl \
