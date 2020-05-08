@@ -21,7 +21,7 @@ Compile:
         export CROSS_COMPILE=aarch64-elf-
         git clone https://gitlab.com/baylibre/amlogic/atv/u-boot.git
         cd u-boot
-        git checkout u-boot/v2020.04/seix10-20200420
+        git checkout u-boot/v2020.04/seix10-20200421
         make [sei510|sei610|sei610_ab]_defconfig
         make
 
