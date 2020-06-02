@@ -342,7 +342,7 @@ static void *event_thread(void *arg)
                 event.dev = &ctx->device;
                 event.cec.initiator = msg.msg[0] >> 4;
                 event.cec.destination = msg.msg[0] & 0xf;
-                event.cec.length = msg.len;
+                event.cec.length = msg.len - 1;
                 memcpy(event.cec.body, &msg.msg[1], msg.len - 1);
 
                 ctx->p_event_cb(&event, ctx->cb_arg);
