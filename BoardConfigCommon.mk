@@ -131,10 +131,9 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/amlogic/yukawa/bluetooth
 BOARD_SEPOLICY_DIRS += \
         device/amlogic/yukawa/sepolicy
 
-ifeq ($(TARGET_USE_AB_SLOT), true)
-DEVICE_MANIFEST_FILE := device/amlogic/yukawa/manifest_ab.xml
-else
 DEVICE_MANIFEST_FILE := device/amlogic/yukawa/manifest.xml
+ifeq ($(TARGET_USE_AB_SLOT), true)
+DEVICE_MANIFEST_FILE += device/amlogic/yukawa/manifest_ab.xml
 endif
 
 ifeq ($(TARGET_KERNEL_USE), 5.4)
