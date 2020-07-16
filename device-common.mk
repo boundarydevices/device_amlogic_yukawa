@@ -141,7 +141,6 @@ PRODUCT_PACKAGES += \
     TVRecommendationsNoGms
 endif
 
-PRODUCT_PACKAGES += llkd
 PRODUCT_PACKAGES += \
     libhidltransport \
     libhwbinder 
@@ -291,3 +290,9 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += YukawaService YukawaAndroidOverlay
 PRODUCT_COPY_FILES += \
     device/amlogic/yukawa/Vendor_0001_Product_0001.kl:$(TARGET_COPY_OUT_VENDOR)/usr/keylayout/Vendor_0001_Product_0001.kl
+
+
+# Light HAL
+PRODUCT_PACKAGES += \
+    android.hardware.light-service \
+    lights-yukawa
