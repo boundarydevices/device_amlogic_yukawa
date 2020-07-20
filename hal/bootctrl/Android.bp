@@ -17,6 +17,7 @@ cc_library_shared {
     vendor: true,
     recovery_available: true,
     relative_install_path: "hw",
+    vintf_fragments: ["bootctrl.xml"],
 
     srcs: [
         "boot_control.cc",
