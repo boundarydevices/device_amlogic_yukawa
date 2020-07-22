@@ -20,6 +20,8 @@
 #include <hardware/audio.h>
 #include <tinyalsa/asoundlib.h>
 
+#include "fir_filter.h"
+
 #define CARD_OUT 0
 #define PORT_HDMI 0
 #define PORT_INTERNAL_SPEAKER 1
@@ -65,6 +67,9 @@
 #define PLAYBACK_CODEC_SAMPLING_RATE 48000
 #define MIN_WRITE_SLEEP_US      5000
 
+#define SPEAKER_EQ_FILE "/vendor/etc/speaker_eq_sei610.fir"
+#define SPEAKER_MAX_EQ_LENGTH 512
+
 struct alsa_audio_device {
     struct audio_hw_device hw_device;
 
@@ -106,6 +111,7 @@ struct alsa_stream_out {
     int write_threshold;
     unsigned int frames_written;
     struct timespec timestamp;
+    fir_filter_t* speaker_eq;
 };
 
 /* 'bytes' are the number of bytes written to audio FIFO, for which 'timestamp' is valid.

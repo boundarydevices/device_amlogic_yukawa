@@ -21,3 +21,7 @@ endif
 # Feature permissions
 PRODUCT_COPY_FILES += \
     device/amlogic/yukawa/permissions/yukawa.xml:/system/etc/sysconfig/yukawa.xml
+
+# Speaker EQ
+PRODUCT_COPY_FILES += \
+    device/amlogic/yukawa/hal/audio/speaker_eq_sei610.fir:$(TARGET_COPY_OUT_VENDOR)/etc/speaker_eq_sei610.fir
