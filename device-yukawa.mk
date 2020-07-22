@@ -10,8 +10,7 @@ else
 PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3l
 endif
 
-
-BOARD_KERNEL_DTB := device/amlogic/yukawa-kernel/
+BOARD_KERNEL_DTB := device/amlogic/yukawa-kernel
 
 ifeq ($(TARGET_PREBUILT_DTB),)
 LOCAL_DTB := $(BOARD_KERNEL_DTB)
