@@ -46,13 +46,14 @@
 
 #include <sys/ioctl.h>
 
-#include "audio_hw.h"
 #include "audio_aec.h"
+#include "audio_hw.h"
 
 static int adev_get_mic_mute(const struct audio_hw_device* dev, bool* state);
 static int adev_get_microphones(const struct audio_hw_device* dev,
                                 struct audio_microphone_characteristic_t* mic_array,
                                 size_t* mic_count);
+static size_t out_get_buffer_size(const struct audio_stream* stream);
 
 static int get_audio_output_port(audio_devices_t devices) {
     /* Prefer HDMI, default to internal speaker */
@@ -99,6 +100,56 @@ static int get_pcm_timestamp(struct pcm* pcm, uint32_t sample_rate, struct aec_i
     }
     timestamp_adjust(&info->timestamp, frames, sample_rate);
     return ret;
+}
+
+static int read_filter_from_file(const char* filename, int16_t* filter, int max_length) {
+    FILE* fp = fopen(filename, "r");
+    if (fp == NULL) {
+        ALOGI("%s: File %s not found.", __func__, filename);
+        return 0;
+    }
+    int num_taps = 0;
+    char* line = NULL;
+    size_t len = 0;
+    while (!feof(fp)) {
+        size_t size = getline(&line, &len, fp);
+        if ((line[0] == '#') || (size < 2)) {
+            continue;
+        }
+        int n = sscanf(line, "%" PRIi16 "\n", &filter[num_taps++]);
+        if (n < 1) {
+            ALOGE("Could not find coefficient %d! Exiting...", num_taps - 1);
+            return 0;
+        }
+        ALOGV("Coeff %d : %" PRIi16, num_taps, filter[num_taps - 1]);
+        if (num_taps == max_length) {
+            ALOGI("%s: max tap length %d reached.", __func__, max_length);
+            break;
+        }
+    }
+    free(line);
+    fclose(fp);
+    return num_taps;
+}
+
+static void out_set_eq(struct alsa_stream_out* out) {
+    out->speaker_eq = NULL;
+    int16_t* speaker_eq_coeffs = (int16_t*)calloc(SPEAKER_MAX_EQ_LENGTH, sizeof(int16_t));
+    if (speaker_eq_coeffs == NULL) {
+        ALOGE("%s: Failed to allocate speaker EQ", __func__);
+        return;
+    }
+    int num_taps = read_filter_from_file(SPEAKER_EQ_FILE, speaker_eq_coeffs, SPEAKER_MAX_EQ_LENGTH);
+    if (num_taps == 0) {
+        ALOGI("%s: Empty filter file or 0 taps set.", __func__);
+        free(speaker_eq_coeffs);
+        return;
+    }
+    out->speaker_eq = fir_init(
+            out->config.channels, FIR_SINGLE_FILTER, num_taps,
+            out_get_buffer_size(&out->stream.common) / out->config.channels / sizeof(int16_t),
+            speaker_eq_coeffs);
+    free(speaker_eq_coeffs);
 }
 
 /* must be called with hw device and output stream mutexes locked */
@@ -184,6 +235,8 @@ static int out_set_format(struct audio_stream *stream, audio_format_t format)
 static int do_output_standby(struct alsa_stream_out *out)
 {
     struct alsa_audio_device *adev = out->dev;
+
+    fir_reset(out->speaker_eq);
 
     if (!out->standby) {
         pcm_close(out->pcm);
@@ -292,6 +345,9 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
 
     pthread_mutex_unlock(&adev->lock);
 
+    if (out->speaker_eq != NULL) {
+        fir_process_interleaved(out->speaker_eq, (int16_t*)buffer, (int16_t*)buffer, out_frames);
+    }
 
     ret = pcm_write(out->pcm, buffer, out_frames * frame_size);
     if (ret == 0) {
@@ -793,6 +849,14 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
 
     *stream_out = &out->stream;
 
+    out->speaker_eq = NULL;
+    if (out_port == PORT_INTERNAL_SPEAKER) {
+        out_set_eq(out);
+        if (out->speaker_eq == NULL) {
+            ALOGE("%s: Failed to initialize speaker EQ", __func__);
+        }
+    }
+
     /* TODO The retry mechanism isn't implemented in AudioPolicyManager/AudioFlinger. */
     ret = 0;
 
@@ -813,6 +877,8 @@ static void adev_close_output_stream(struct audio_hw_device *dev,
     ALOGV("adev_close_output_stream...");
     struct alsa_audio_device *adev = (struct alsa_audio_device *)dev;
     destroy_aec_reference_config(adev->aec);
+    struct alsa_stream_out* out = (struct alsa_stream_out*)stream;
+    fir_release(out->speaker_eq);
     free(stream);
 }
 
