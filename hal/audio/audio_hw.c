@@ -116,12 +116,12 @@ static int read_filter_from_file(const char* filename, int16_t* filter, int max_
         if ((line[0] == '#') || (size < 2)) {
             continue;
         }
-        int n = sscanf(line, "%" PRIi16 "\n", &filter[num_taps++]);
+        int n = sscanf(line, "%" SCNd16 "\n", &filter[num_taps++]);
         if (n < 1) {
             ALOGE("Could not find coefficient %d! Exiting...", num_taps - 1);
             return 0;
         }
-        ALOGV("Coeff %d : %" PRIi16, num_taps, filter[num_taps - 1]);
+        ALOGV("Coeff %d : %" PRId16, num_taps, filter[num_taps - 1]);
         if (num_taps == max_length) {
             ALOGI("%s: max tap length %d reached.", __func__, max_length);
             break;
