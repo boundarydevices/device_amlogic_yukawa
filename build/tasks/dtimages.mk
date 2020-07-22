@@ -7,7 +7,7 @@
 
 ifneq ($(filter yukawa%, $(TARGET_DEVICE)),)
 
-MKDTIMG := $(realpath prebuilts/misc/$(HOST_PREBUILT_TAG)/libufdt/mkdtimg)
+MKDTIMG := system/libufdt/utils/src/mkdtboimg.py
 DTBIMAGE := $(PRODUCT_OUT)/dtb.img
 DTBOIMAGE := $(PRODUCT_OUT)/$(DTBO_UNSIGNED)
 
@@ -21,13 +21,15 @@ DTB_FILES := \
 DTBO_FILES := \
 	$(LOCAL_DTB)/meson-g12a-sei510-android.dtb-$(TARGET_KERNEL_USE) \
 	$(LOCAL_DTB)/meson-sm1-sei610-android.dtb-$(TARGET_KERNEL_USE) \
-	$(LOCAL_DTB)/meson-sm1-khadas-vim3l-android.dtb-$(TARGET_KERNEL_USE) 
+	$(LOCAL_DTB)/meson-sm1-khadas-vim3l-android.dtb-$(TARGET_KERNEL_USE)
 
 $(DTBIMAGE): $(DTB_FILES)
 	cat $^ > $@
 
-$(DTBOIMAGE): $(DTBO_FILES)
-	$(MKDTIMG) create $@ $^
+$(DTBOIMAGE): PRIVATE_MKDTIMG := $(MKDTIMG)
+$(DTBOIMAGE): PRIVATE_DTBO_FILES := $(DTBO_FILES)
+$(DTBOIMAGE): $(DTBO_FILES) $(MKDTIMG)
+	$(PRIVATE_MKDTIMG) create $@ $(PRIVATE_DTBO_FILES)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := dtbimage
