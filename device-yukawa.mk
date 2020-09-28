@@ -4,10 +4,12 @@ endif
 
 $(call inherit-product, device/amlogic/yukawa/device-common.mk)
 
-ifeq ($(TARGET_VIM3L),)
-PRODUCT_PROPERTY_OVERRIDES += ro.product.device=sei610
-else
+ifeq ($(TARGET_VIM3), true)
+PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3
+else ifeq ($(TARGET_VIM3L), true)
 PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3l
+else
+PRODUCT_PROPERTY_OVERRIDES += ro.product.device=sei610
 endif
 
 BOARD_KERNEL_DTB := device/amlogic/yukawa-kernel
