@@ -1,7 +1,7 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-TARGET := dvalin_ion
+TARGET := ${GPU_TYPE}
 GPU_TARGET_PLATFORM ?= default_8a
 GPU_DRV_VERSION ?= r16p0
 LOCAL_ANDROID_VERSION_NUM := p-${GPU_DRV_VERSION}gralloc1
