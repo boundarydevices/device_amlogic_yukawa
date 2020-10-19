@@ -163,6 +163,13 @@ struct private_handle_t
 	 * if not sure buff's real phys_page size, you can use SZ_4K for safe.
 	 */
 	int min_pgsz;
+
+	// for request width and height
+	uint32_t req_width;
+	uint32_t req_height;
+	uint64_t padding_1;
+	uint64_t padding_2;
+
 #ifdef __cplusplus
 	/*
 	 * We track the number of integers in the structure. There are 16 unconditional
