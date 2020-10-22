@@ -39,6 +39,9 @@ use tarball in fip_packages folder and untar it
 - For VIM3L (yukawa):
         tar -xaf fip-collect-sm1-kvim3l-khadas-vims-v2015.01-20191204-095738.tar.gz
 
+- For VIM3 (yukawa):
+        tar -xaf fip-collect-g12b-kvim3-khadas-vims-v2015.01-20200921-140933.tar.gz
+
 Then launch script:
 
         ./generate-bins-new.sh <fip-collect-directory> <target-bl33-binary>
