@@ -15,13 +15,15 @@ DTBOIMAGE := $(PRODUCT_OUT)/$(DTBO_UNSIGNED)
 DTB_FILES := \
 	$(LOCAL_DTB)/meson-g12a-sei510.dtb-$(TARGET_KERNEL_USE) \
 	$(LOCAL_DTB)/meson-sm1-sei610.dtb-$(TARGET_KERNEL_USE) \
-	$(LOCAL_DTB)/meson-sm1-khadas-vim3l.dtb-$(TARGET_KERNEL_USE)
+	$(LOCAL_DTB)/meson-sm1-khadas-vim3l.dtb-$(TARGET_KERNEL_USE) \
+	$(LOCAL_DTB)/meson-g12b-a311d-khadas-vim3.dtb-$(TARGET_KERNEL_USE)
 
 # Please keep this list fixed: add new files in the end of the list
 DTBO_FILES := \
 	$(LOCAL_DTB)/meson-g12a-sei510-android.dtb-$(TARGET_KERNEL_USE) \
 	$(LOCAL_DTB)/meson-sm1-sei610-android.dtb-$(TARGET_KERNEL_USE) \
-	$(LOCAL_DTB)/meson-sm1-khadas-vim3l-android.dtb-$(TARGET_KERNEL_USE)
+	$(LOCAL_DTB)/meson-sm1-khadas-vim3l-android.dtb-$(TARGET_KERNEL_USE) \
+	$(LOCAL_DTB)/meson-g12b-a311d-khadas-vim3-android.dtb-$(TARGET_KERNEL_USE)
 
 $(DTBIMAGE): $(DTB_FILES)
 	cat $^ > $@
