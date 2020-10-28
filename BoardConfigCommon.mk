@@ -131,6 +131,9 @@ endif
 ifeq ($(TARGET_BUILTIN_EDID), true)
 BOARD_KERNEL_CMDLINE += drm.edid_firmware=edid/1920x1080.bin
 endif
+ifneq ($(TARGET_SENSOR_MEZZANINE),)
+BOARD_KERNEL_CMDLINE += overlay_mgr.overlay_dt_entry=hardware_cfg_$(TARGET_SENSOR_MEZZANINE)
+endif
 
 USE_E2FSPROGS := true
 
@@ -152,5 +155,10 @@ ifeq ($(TARGET_KERNEL_USE), 5.4)
 DEVICE_MANIFEST_FILE += device/amlogic/yukawa/manifest_kernel5.xml
 endif
 DEVICE_MATRIX_FILE := device/amlogic/yukawa/compatibility_matrix.xml
+
+ifneq ($(TARGET_SENSOR_MEZZANINE),)
+DEVICE_MANIFEST_FILE += device/amlogic/yukawa/sensorhal/manifest.xml
+endif
+
 # Generate an APEX image for experiment b/119800099.
 DEXPREOPT_GENERATE_APEX_IMAGE := true
