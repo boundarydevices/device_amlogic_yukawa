@@ -6,6 +6,8 @@ subsystem usbmisc
 /dev/graphics/fb0	0666 system graphics
 /dev/cec0	0666 system graphics
 /dev/i2c-0	0666 system system
+/dev/nanohub              0660   system     system
+/dev/nanohub_comms        0660   system     system
 
 /sys/class/leds/sei610\:red\:power	brightness	0666 system system
 /sys/class/leds/sei610\:blue\:bt	brightness	0666 system system
