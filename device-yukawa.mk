@@ -6,9 +6,11 @@ $(call inherit-product, device/amlogic/yukawa/device-common.mk)
 
 ifeq ($(TARGET_VIM3), true)
 PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3
+AUDIO_DEFAULT_OUTPUT := hdmi
 GPU_TYPE := gondul_ion
 else ifeq ($(TARGET_VIM3L), true)
 PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3l
+AUDIO_DEFAULT_OUTPUT := hdmi
 else
 PRODUCT_PROPERTY_OVERRIDES += ro.product.device=sei610
 endif
