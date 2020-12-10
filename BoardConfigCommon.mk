@@ -146,7 +146,7 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/amlogic/yukawa/bluetooth
 BOARD_SEPOLICY_DIRS += \
         device/amlogic/yukawa/sepolicy
 
-DEVICE_MANIFEST_FILE := device/amlogic/yukawa/manifest.xml
+DEVICE_MANIFEST_FILE += device/amlogic/yukawa/manifest.xml
 ifeq ($(TARGET_USE_AB_SLOT), true)
 DEVICE_MANIFEST_FILE += device/amlogic/yukawa/hal/bootctrl/bootctrl.xml
 endif
