@@ -2,7 +2,6 @@
 
 #1 is the Amlogic fip directory
 #2 is u-boot directory
-
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -26,7 +25,11 @@ function fix_blx() {
 
 	#$7:name flag
 	if [ "$7" = "bl30" ]; then
-		blx_bin_limit=40960   # PD#132613 2016-10-31 update, 41984->40960
+	    if [ "$SOCFAMILY" = "g12a" -o "$SOCFAMILY" = "sm1" ]; then
+		   blx_bin_limit=47104
+	    else
+		   blx_bin_limit=40960
+	    fi
 		blx01_bin_limit=13312 # PD#132613 2016-10-31 update, 12288->13312
 	elif [ "$7" = "bl2" ]; then
 	    if [ "$SOCFAMILY" = "g12a" -o "$SOCFAMILY" = "sm1" -o "$SOCFAMILY" = "g12b" ]; then

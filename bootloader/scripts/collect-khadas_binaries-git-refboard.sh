@@ -40,9 +40,11 @@ fi
 
 BIN_LIST="$SOCFAMILY/bl2.bin \
 	  $SOCFAMILY/bl30.bin \
+	  $SOCFAMILY/bl31.bin \
 	  $SOCFAMILY/bl31.img \
-	  $SOCFAMILY/aml_encrypt_$SOCFAMILY \
-          $SOCFAMILY/*.fw "
+	  $SOCFAMILY/aml_encrypt_$SOCFAMILY "
+
+FW_LIST="$SOCFAMILY/*.fw"
 
 # path to clone the openlinux repos
 TMP_GIT=$(mktemp -d)
@@ -61,25 +63,44 @@ sed -i "s,/opt/gcc-.*/bin/,," $TMP_GIT/u-boot/Makefile
 (
     cd $TMP_GIT/u-boot
     make ${REFBOARD}_defconfig
-    PATH=$TMP_GIT/gcc-linaro-aarch64-none-elf/bin:$TMP_GIT/gcc-linaro-arm-none-eabi/bin:$PATH CROSS_COMPILE=aarch64-none-elf- make > /dev/null
+    PATH=$TMP_GIT/gcc-linaro-aarch64-none-elf/bin:$TMP_GIT/gcc-linaro-arm-none-eabi/bin:$PATH CROSS_COMPILE=aarch64-none-elf- make -j8 > /dev/null
+    cd fip/tools/ddr_parse && make clean && make
 )
+
 cp $TMP_GIT/u-boot/build/board/khadas/*/firmware/acs.bin $TMP/
 cp $TMP_GIT/u-boot/build/scp_task/bl301.bin $TMP/
-
+# cp $TMP_GIT/u-boot/fip/tools/ddr_parse/parse $TMP/
+$TMP_GIT/u-boot/fip/tools/ddr_parse/parse ${TMP}/acs.bin
 # FIP/BLX
 echo $BIN_LIST
 for item in $BIN_LIST
 do
     BIN=$(echo $item)
-    DIR=$TMP_GIT/u-boot/$(basename --suffix=.bin $item)/bin
+    DIR1=$TMP_GIT/u-boot/$(basename --suffix=.bin $item)/bin/
+    DIR2=$TMP_GIT/u-boot/$(basename --suffix=.img $item)_1.3/bin/
+    DIR21=$TMP_GIT/u-boot/$(basename --suffix=.bin $item)_1.3/bin/
+    DIR22=$TMP_GIT/u-boot/$(basename --suffix=.img $item)_1.3/bin/
     BRANCH=$GITBRANCH
 
-    if [[ -d $DIR ]]
+    if [[ -d $DIR1/$SOCFAMILY/ ]]
     then
-      cp $DIR/$BIN ${TMP}
+      cp $DIR1/$BIN ${TMP}
+    elif [[ -d $DIR2/$SOCFAMILY/ ]]
+    then
+      cp $DIR2/$BIN ${TMP}
+    elif [[ -d $DIR21/$SOCFAMILY/ ]]
+    then
+      cp $DIR21/$BIN ${TMP}
+    elif [[ -d $DIR22/$SOCFAMILY/ ]]
+    then
+      cp $DIR22/$BIN ${TMP}
     fi
 
 done
+
+echo $FW_LIST
+cp $TMP_GIT/u-boot/fip/$FW_LIST ${TMP}
+
 
 # Normalize
 mv $TMP_GIT/u-boot/fip/$SOCFAMILY/aml_encrypt_$SOCFAMILY $TMP/aml_encrypt
