@@ -1048,22 +1048,25 @@ static int adev_open_input_stream(struct audio_hw_device* dev, audio_io_handle_t
     in->stream.get_capture_position = in_get_capture_position;
     in->stream.get_active_microphones = in_get_active_microphones;
 
-    in->config.channels = CHANNEL_STEREO;
     if (source == AUDIO_SOURCE_ECHO_REFERENCE) {
         in->config.rate = PLAYBACK_CODEC_SAMPLING_RATE;
+        in->config.channels = NUM_AEC_REFERENCE_CHANNELS;
+        in->config.period_size =
+                CAPTURE_PERIOD_SIZE * PLAYBACK_CODEC_SAMPLING_RATE / CAPTURE_CODEC_SAMPLING_RATE;
     } else {
         in->config.rate = CAPTURE_CODEC_SAMPLING_RATE;
+        in->config.channels = CHANNEL_STEREO;
+        in->config.period_size = CAPTURE_PERIOD_SIZE;
     }
     in->config.format = PCM_FORMAT_S32_LE;
-    in->config.period_size = CAPTURE_PERIOD_SIZE;
     in->config.period_count = CAPTURE_PERIOD_COUNT;
 
     if (in->config.rate != config->sample_rate ||
-           audio_channel_count_from_in_mask(config->channel_mask) != CHANNEL_STEREO ||
-               in->config.format !=  pcm_format_from_audio_format(config->format) ) {
-        config->format = in_get_format(&in->stream.common);
-        config->channel_mask = in_get_channels(&in->stream.common);
-        config->sample_rate = in_get_sample_rate(&in->stream.common);
+        audio_channel_count_from_in_mask(config->channel_mask) != in->config.channels ||
+        in->config.format != pcm_format_from_audio_format(config->format)) {
+        config->format = audio_format_from_pcm_format(in->config.format);
+        config->channel_mask = audio_channel_in_mask_from_count(in->config.channels);
+        config->sample_rate = in->config.rate;
         goto error_1;
     }
 
@@ -1180,9 +1183,15 @@ static int adev_open(const hw_module_t* module, const char* name,
         goto error_2;
     }
 
+    struct aec_params params = {
+            .num_mic_channels = CHANNEL_STEREO,
+            .num_reference_channels = NUM_AEC_REFERENCE_CHANNELS,
+            .num_playback_channels = CHANNEL_STEREO,
+            .mic_sampling_rate_hz = CAPTURE_CODEC_SAMPLING_RATE,
+            .playback_sampling_rate_hz = PLAYBACK_CODEC_SAMPLING_RATE,
+    };
     pthread_mutex_lock(&adev->lock);
-    if (init_aec(CAPTURE_CODEC_SAMPLING_RATE, NUM_AEC_REFERENCE_CHANNELS,
-                    CHANNEL_STEREO, &adev->aec)) {
+    if (init_aec(&params, &adev->aec)) {
         pthread_mutex_unlock(&adev->lock);
         goto error_3;
     }

@@ -175,14 +175,27 @@ void destroy_aec_mic_config_no_lock(struct aec_t* aec) {
     aec->mic_initialized = false;
 }
 
-struct aec_t *init_aec_interface() {
+struct aec_t* init_aec_interface(struct aec_params* params) {
     ALOGV("%s enter", __func__);
     struct aec_t *aec = (struct aec_t *)calloc(1, sizeof(struct aec_t));
     if (aec == NULL) {
-        ALOGE("Failed to allocate memory for AEC interface!");
-    } else {
-        pthread_mutex_init(&aec->lock, NULL);
+        ALOGE("%s: Failed to allocate memory for AEC interface!", __func__);
+        ALOGV("%s exit", __func__);
+        return NULL;
     }
+    pthread_mutex_init(&aec->lock, NULL);
+
+    aec->num_reference_channels = params->num_reference_channels;
+    /* Set defaults, will be overridden by settings in init_aec_(mic|referece_config) */
+    /* Capture settings */
+    aec->mic_sampling_rate = params->mic_sampling_rate_hz;
+    aec->mic_frame_size_bytes = params->num_mic_channels * sizeof(int32_t);
+    aec->mic_num_channels = params->num_mic_channels;
+
+    /* Playback settings (before conversion to reference) */
+    aec->spk_sampling_rate = params->playback_sampling_rate_hz;
+    aec->spk_frame_size_bytes = params->num_playback_channels * sizeof(int32_t);
+    aec->spk_num_channels = params->num_playback_channels;
 
     ALOGV("%s exit", __func__);
     return aec;
@@ -198,36 +211,29 @@ void release_aec_interface(struct aec_t *aec) {
     ALOGV("%s exit", __func__);
 }
 
-int init_aec(int sampling_rate, int num_reference_channels,
-                int num_microphone_channels, struct aec_t **aec_ptr) {
+int init_aec(struct aec_params* params, struct aec_t** aec_ptr) {
     ALOGV("%s enter", __func__);
-    int ret = 0;
-    int aec_ret = aec_spk_mic_init(
-                    sampling_rate,
-                    num_reference_channels,
-                    num_microphone_channels);
-    if (aec_ret) {
-        ALOGE("AEC object failed to initialize!");
-        ret = -EINVAL;
+    if ((params == NULL) || (aec_ptr == NULL)) {
+        ALOGE("%s: Invalid input arguments!", __func__);
+        return -EINVAL;
     }
-    struct aec_t *aec = init_aec_interface();
-    if (!ret) {
-        aec->num_reference_channels = num_reference_channels;
-        /* Set defaults, will be overridden by settings in init_aec_(mic|referece_config) */
-        /* Capture uses 2-ch, 32-bit frames */
-        aec->mic_sampling_rate = CAPTURE_CODEC_SAMPLING_RATE;
-        aec->mic_frame_size_bytes = CHANNEL_STEREO * sizeof(int32_t);
-        aec->mic_num_channels = CHANNEL_STEREO;
-
-        /* Playback uses 2-ch, 16-bit frames */
-        aec->spk_sampling_rate = PLAYBACK_CODEC_SAMPLING_RATE;
-        aec->spk_frame_size_bytes = CHANNEL_STEREO * sizeof(int16_t);
-        aec->spk_num_channels = CHANNEL_STEREO;
+    if (aec_spk_mic_init(params->mic_sampling_rate, params->num_reference_channels,
+                         params->num_mic_channels)) {
+        ALOGE("%s: AEC object failed to initialize!", __func__);
+        return -EINVAL;
     }
-
+    struct aec_t* aec = init_aec_interface(params);
+    if (aec == NULL) {
+        ALOGE("%s: Failed to allocate AEC struct!", __func__);
+        goto error_1;
+    }
     (*aec_ptr) = aec;
     ALOGV("%s exit", __func__);
-    return ret;
+    return 0;
+
+error_1:
+    aec_spk_mic_release();
+    return -EINVAL;
 }
 
 void release_aec(struct aec_t *aec) {
@@ -371,11 +377,13 @@ int get_reference_samples(struct aec_t* aec, void* buffer, struct aec_info* info
     }
 
     size_t bytes = info->bytes;
-    const size_t frames = bytes / aec->mic_frame_size_bytes;
+    const size_t frames =
+            bytes * aec->num_reference_channels / aec->mic_num_channels / aec->mic_frame_size_bytes;
     const size_t sample_rate_ratio = aec->spk_sampling_rate / aec->mic_sampling_rate;
+    const size_t resampler_in_frames = frames * sample_rate_ratio;
 
     /* Read audio samples from FIFO */
-    const size_t req_bytes = frames * sample_rate_ratio * aec->spk_frame_size_bytes;
+    const size_t req_bytes = resampler_in_frames * aec->spk_frame_size_bytes;
     ssize_t available_bytes = 0;
     unsigned int wait_count = MAX_READ_WAIT_TIME_MSEC;
     while (true) {
@@ -402,7 +410,6 @@ int get_reference_samples(struct aec_t* aec, void* buffer, struct aec_info* info
 
     /* Get reference - could be mono, downmixed from multichannel.
      * Reference stored at spk_buf_playback_format */
-    const size_t resampler_in_frames = frames * sample_rate_ratio;
     get_reference_audio_in_place(aec, resampler_in_frames);
 
     int16_t* resampler_out_buf;
@@ -461,7 +468,7 @@ int init_aec_mic_config(struct aec_t *aec, struct alsa_stream_in *in) {
     aec->mic_frame_size_bytes = audio_stream_in_frame_size(&in->stream);
     aec->mic_num_channels = in->config.channels;
 
-    aec->mic_buf_size_bytes = in->config.period_size * audio_stream_in_frame_size(&in->stream);
+    aec->mic_buf_size_bytes = in->config.period_size * aec->mic_frame_size_bytes;
     aec->mic_buf = (int32_t *)malloc(aec->mic_buf_size_bytes);
     if (aec->mic_buf == NULL) {
         ret = -ENOMEM;
@@ -470,7 +477,8 @@ int init_aec_mic_config(struct aec_t *aec, struct alsa_stream_in *in) {
     memset(aec->mic_buf, 0, aec->mic_buf_size_bytes);
     /* Reference buffer is the same number of frames as mic,
      * only with a different number of channels in the frame. */
-    aec->spk_buf_size_bytes = in->config.period_size * aec->spk_frame_size_bytes;
+    aec->spk_buf_size_bytes = in->config.period_size * aec->spk_num_channels *
+                              aec->mic_frame_size_bytes / aec->mic_num_channels;
     aec->spk_buf = (int32_t *)malloc(aec->spk_buf_size_bytes);
     if (aec->spk_buf == NULL) {
         ret = -ENOMEM;
@@ -479,8 +487,8 @@ int init_aec_mic_config(struct aec_t *aec, struct alsa_stream_in *in) {
     memset(aec->spk_buf, 0, aec->spk_buf_size_bytes);
 
     /* Pre-resampler buffer */
-    size_t spk_frame_out_format_bytes = aec->spk_sampling_rate / aec->mic_sampling_rate *
-                                            aec->spk_buf_size_bytes;
+    size_t spk_frame_out_format_bytes =
+            aec->spk_buf_size_bytes * aec->spk_sampling_rate / aec->mic_sampling_rate;
     aec->spk_buf_playback_format = (int16_t *)malloc(spk_frame_out_format_bytes);
     if (aec->spk_buf_playback_format == NULL) {
         ret = -ENOMEM;
