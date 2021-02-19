@@ -60,12 +60,19 @@ struct aec_t {
     bool prev_spk_running;
 };
 
+struct aec_params {
+    int num_mic_channels;
+    int num_reference_channels;
+    int num_playback_channels;
+    int mic_sampling_rate_hz;
+    int playback_sampling_rate_hz;
+};
+
 /* Initialize AEC object.
  * This must be called when the audio device is opened.
  * ALSA device mutex must be held before calling this API.
  * Returns -EINVAL if AEC object fails to initialize, else returns 0. */
-int init_aec (int sampling_rate, int num_reference_channels,
-                int num_microphone_channels, struct aec_t **);
+int init_aec(struct aec_params* params, struct aec_t** aec_ptr);
 
 /* Release AEC object.
  * This must be called when the audio device is closed. */
