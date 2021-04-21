@@ -27,5 +27,7 @@ LOCAL_USE_AAPT2 := true
 LOCAL_AAPT2_ONLY := true
 
 LOCAL_PACKAGE_NAME := YukawaAndroidOverlay
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
 LOCAL_CERTIFICATE := platform
 include $(BUILD_RRO_PACKAGE)
