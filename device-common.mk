@@ -362,5 +362,11 @@ PRODUCT_PACKAGES += \
     android.hardware.light-service \
     lights-yukawa
 
+# Enable USB Camera
+PRODUCT_PACKAGES += android.hardware.camera.provider@2.4-impl
+PRODUCT_PACKAGES += android.hardware.camera.provider@2.4-external-service
+PRODUCT_COPY_FILES += \
+    device/amlogic/yukawa/hal/camera/external_camera_config.xml:$(TARGET_COPY_OUT_VENDOR)/etc/external_camera_config.xml
+
 # Include Virtualization APEX
 $(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
