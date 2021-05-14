@@ -34,12 +34,18 @@ endif
 LOCAL_SHARED_LIBRARIES := android.hardware.graphics.common@1.0 libz libnativewindow libc++ liblog libm libc libdl
 LOCAL_STRIP_MODULE := false
 
-
-
 ifeq ($(BOARD_INSTALL_VULKAN),true)
 LOCAL_POST_INSTALL_CMD = $(hide)\
 	cd $(dir $(LOCAL_INSTALLED_MODULE))/../hw;\
 	ln -sf ../egl/$(notdir $(LOCAL_INSTALLED_MODULE)) ./vulkan.$(TARGET_DEVICE).so
+endif
+
+ifeq ($(BOARD_INSTALL_OPENCL),true)
+LOCAL_POST_INSTALL_CMD += \
+	cd $(dir $(LOCAL_INSTALLED_MODULE))/..;\
+	ln -sf egl/$(notdir $(LOCAL_INSTALLED_MODULE)) libOpenCL.so.1.1;\
+	ln -sf libOpenCL.so.1.1 libOpenCL.so.1;\
+	ln -sf libOpenCL.so.1 libOpenCL.so;
 endif
 
 include $(BUILD_PREBUILT)
