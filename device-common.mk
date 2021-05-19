@@ -146,7 +146,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     LeanbackIME
 
-ifeq (,$(filter $(TARGET_PRODUCT),yukawa_gms yukawa_sei510_gms))
+ifeq (,$(filter $(TARGET_PRODUCT),yukawa_gms yukawa32_gms yukawa_sei510_gms))
 PRODUCT_PACKAGES += \
     TvProvision \
     TVLauncherNoGms \
