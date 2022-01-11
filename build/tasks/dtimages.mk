@@ -13,16 +13,12 @@ DTBOIMAGE := $(PRODUCT_OUT)/$(DTBO_UNSIGNED)
 
 # Please keep this list fixed: add new files in the end of the list
 DTB_FILES := \
-	$(LOCAL_DTB)/meson-g12a-sei510.dtb \
-	$(LOCAL_DTB)/meson-sm1-sei610.dtb \
-	$(LOCAL_DTB)/meson-sm1-khadas-vim3l.dtb \
-	$(LOCAL_DTB)/meson-g12b-a311d-khadas-vim3.dtb
+	$(LOCAL_DTB)/meson-g12b-a311d-bd-som.dtb \
+	$(LOCAL_DTB)/meson-g12b-a311d-khadas-vim3.dtb \
 
 # Please keep this list fixed: add new files in the end of the list
 DTBO_FILES := \
-	$(LOCAL_DTB)/meson-g12a-sei510-android.dtb \
-	$(LOCAL_DTB)/meson-sm1-sei610-android.dtb \
-	$(LOCAL_DTB)/meson-sm1-khadas-vim3l-android.dtb \
+	$(LOCAL_DTB)/meson-g12b-a311d-bd-som-android.dtb \
 	$(LOCAL_DTB)/meson-g12b-a311d-khadas-vim3-android.dtb \
 
 $(DTBIMAGE): $(DTB_FILES)
