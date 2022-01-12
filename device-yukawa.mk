@@ -12,7 +12,9 @@ else ifeq ($(TARGET_VIM3L), true)
 PRODUCT_PROPERTY_OVERRIDES += ro.product.device=vim3l
 AUDIO_DEFAULT_OUTPUT := hdmi
 else
-PRODUCT_PROPERTY_OVERRIDES += ro.product.device=sei610
+PRODUCT_PROPERTY_OVERRIDES += ro.product.device=a311d-bd-som
+AUDIO_DEFAULT_OUTPUT := hdmi
+GPU_TYPE := gondul_ion
 endif
 GPU_TYPE ?= dvalin_ion
 
