@@ -2,6 +2,27 @@ ifndef TARGET_KERNEL_USE
 TARGET_KERNEL_USE=4.19
 endif
 
+# BD overrides
+TARGET_KERNEL_ARCH := arm64
+TARGET_KERNEL_DEFCONFIG := meson_defconfig
+TARGET_OUT_INTERMEDIATES := out/target/product/yukawa/obj
+TARGET_KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ
+TARGET_PREBUILT_DTB := $(TARGET_KERNEL_OUT)/arch/arm64/boot/dts/amlogic
+TARGET_PREBUILT_KERNEL := $(TARGET_KERNEL_OUT)/arch/arm64/boot/Image.lz4
+TARGET_USE_TABLET_LAUNCHER := true
+TARGET_AVB_ENABLE := true
+BOARD_VENDOR_KERNEL_MODULES += \
+    $(TARGET_OUT_INTERMEDIATES)/QCACLD_OBJ/wlan.ko
+
+PRODUCT_PACKAGES += \
+    bdwlan30.bin \
+    cfg.dat \
+    otp30.bin \
+    qcom_cfg.ini \
+    qwlan30.bin \
+    tfbtfw11.tlv \
+    tfbtnv11.bin
+
 $(call inherit-product, device/amlogic/yukawa/device-common.mk)
 
 ifeq ($(TARGET_VIM3), true)
