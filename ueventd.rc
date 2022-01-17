@@ -1,5 +1,3 @@
-modalias_handling enabled
-
 subsystem usbmisc
     devname uevent_devname
 
