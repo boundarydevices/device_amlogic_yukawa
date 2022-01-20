@@ -1,8 +1,8 @@
 QCACLD_PATH ?= $(ANDROID_BUILD_TOP)/vendor/boundary/qcacld-2.0
 QCACLD_OUT  ?= $(TARGET_OUT_INTERMEDIATES)/QCACLD_OBJ
 
-qcacld_build_make_env = -C $(QCACLD_PATH) KERNEL_SRC=$(KERNEL_OUT) ARCH=$(KERNEL_ARCH) \
-	CROSS_COMPILE=$(strip $(KERNEL_CROSS_COMPILE_WRAPPER)) $(CLANG_TO_COMPILE) \
+qcacld_build_make_env = $(kernel_build_common_env) $(CLANG_TO_COMPILE) \
+			-C $(QCACLD_PATH) KERNEL_SRC=$(KERNEL_OUT)
 
 qcacld: $(QCACLD_PATH)
 	mkdir -p $(QCACLD_OUT) ; \
@@ -11,4 +11,5 @@ qcacld: $(QCACLD_PATH)
 		$(kernel_build_shell_env) $(MAKE) $(qcacld_build_make_env) clean ; \
 	fi ; \
 	$(kernel_build_shell_env) $(MAKE) $(qcacld_build_make_env) ; \
-	cp -v $(QCACLD_PATH)/wlan.ko $(QCACLD_OUT)/wlan.ko
+	$(kernel_build_shell_env) llvm-strip --strip-debug \
+		$(QCACLD_PATH)/wlan.ko -o $(QCACLD_OUT)/wlan.ko
