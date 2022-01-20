@@ -6,6 +6,7 @@ on early-init
 
 on init
     write /proc/sys/vm/page-cluster 0
+    start insmod_sh
 
 on fs
     mount_all /vendor/etc/fstab.yukawa
@@ -35,5 +36,12 @@ service wpa_supplicant /system/vendor/bin/hw/wpa_supplicant \
 
 service bugreport /system/bin/dumpstate -d -p -z
     class main
+    disabled
+    oneshot
+
+service insmod_sh /vendor/bin/init.insmod.sh /vendor/etc/init.insmod.cfg
+    class main
+    user root
+    group root system
     disabled
     oneshot

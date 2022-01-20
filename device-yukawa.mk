@@ -13,6 +13,9 @@ TARGET_USE_TABLET_LAUNCHER := true
 TARGET_AVB_ENABLE := true
 BOARD_VENDOR_KERNEL_MODULES += \
     $(TARGET_OUT_INTERMEDIATES)/QCACLD_OBJ/wlan.ko
+PRODUCT_COPY_FILES += \
+    device/amlogic/yukawa/init.insmod.cfg:$(TARGET_COPY_OUT_VENDOR)/etc/init.insmod.cfg \
+    device/amlogic/yukawa/init.insmod.sh:$(TARGET_COPY_OUT_VENDOR)/bin/init.insmod.sh
 
 PRODUCT_PACKAGES += \
     bdwlan30.bin \
