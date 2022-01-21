@@ -125,15 +125,10 @@ DTBO_UNSIGNED := dtbo-unsigned.img
 BOARD_PREBUILT_DTBOIMAGE = $(PRODUCT_OUT)/$(DTBO_UNSIGNED)
 
 
-BOARD_KERNEL_CMDLINE += no_console_suspend console=ttyAML0,115200 earlycon
-BOARD_KERNEL_CMDLINE += printk.devkmsg=on
 BOARD_KERNEL_CMDLINE += androidboot.boot_devices=soc/ffe07000.mmc 
 BOARD_KERNEL_CMDLINE += init=/init
 BOARD_KERNEL_CMDLINE += firmware_class.path=/vendor/firmware
 BOARD_KERNEL_CMDLINE += androidboot.hardware=yukawa
-ifneq ($(TARGET_SELINUX_ENFORCE), true)
-BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
-endif
 ifeq ($(TARGET_BUILTIN_EDID), true)
 BOARD_KERNEL_CMDLINE += drm.edid_firmware=edid/1920x1080.bin
 endif
