@@ -1,6 +1,7 @@
 import /vendor/etc/init/hw/init.yukawa.usb.rc
 
 on early-init
+    setprop ro.sf.lcd_density ${ro.boot.lcd_density}
     # mount debugfs
     mount debugfs /sys/kernel/debug /sys/kernel/debug mode=755
 
